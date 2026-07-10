@@ -1,3 +1,13 @@
+# Proyectos de negocio
+
+Este repositorio contiene varios proyectos de negocio:
+
+1. **[`agencia-marketing/`](agencia-marketing/README.md)** — 🎯 **Proyecto activo**: agencia de marketing/web B2B con venta por llamada fría a negocios de toda España (nicho, oferta, guiones de llamada, prospección, CRM y plan de 30 días).
+2. **`docs/` + `shopify-store/`** — Tienda Shopify dropshipping (España). En pausa.
+3. **`negocio-limpieza-vehiculos/`** — Negocio de limpieza de vehículos con estrategia TikTok. En pausa.
+
+---
+
 # Estrategia de tienda Shopify — Dropshipping (España)
 
 Plan completo, de menor a mayor presupuesto posible, para lanzar una tienda Shopify con máximas probabilidades de éxito en el mercado español.

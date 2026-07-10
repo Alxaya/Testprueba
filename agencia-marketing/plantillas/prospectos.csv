@@ -1,0 +1,2 @@
+fecha_alta,negocio,nicho,ciudad,provincia,telefono,email,web,num_resenas,posicion_maps,fallo_principal,estado,intentos_llamada,fecha_ultimo_contacto,proxima_accion,fecha_proxima_accion,notas
+2026-07-13,Clinica Dental Ejemplo,dental,Zaragoza,Zaragoza,976000000,info@ejemplo.es,no,12,#14,"Sin web y ultima resena hace 8 meses",NUEVO,0,,llamar,2026-07-14,"Decisor: Dra. Garcia. Mejor llamar 13:30-15:30"
