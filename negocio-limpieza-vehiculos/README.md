@@ -9,6 +9,7 @@ Plan serio y ejecutable para montar un negocio de limpieza integral de vehículo
 3. [`03-estrategia-tiktok.md`](03-estrategia-tiktok.md) — La estrategia completa de TikTok: perfil, pilares de contenido, 40 ideas de vídeo, hashtags locales y cómo convertir vistas en reservas.
 4. [`04-guiones-y-calendario.md`](04-guiones-y-calendario.md) — Guiones desarrollados para los primeros 14 vídeos y calendario de publicación del primer mes.
 5. [`05-operativa-y-plan-30-dias.md`](05-operativa-y-plan-30-dias.md) — Equipamiento con precios, proceso de trabajo paso a paso, flujo de reservas por WhatsApp y plan día a día de los primeros 30 días.
+6. [`06-configuracion-cuenta-tiktok.md`](06-configuracion-cuenta-tiktok.md) — Configuración de la cuenta paso a paso: nombre, cuenta de empresa, bio, enlace de WhatsApp, WhatsApp Business y checklist final.
 
 ## Resumen del negocio en 5 líneas
 
