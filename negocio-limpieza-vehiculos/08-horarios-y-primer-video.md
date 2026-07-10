@@ -59,6 +59,23 @@ Formato "storytime en texto": funciona porque la gente lo lee entero (retención
 
 Las 6 imágenes de la Opción A montadas en CapCut como vídeo (1,5 s por imagen, zoom suave) + **texto a voz de CapCut** narrando el guion de la Opción B. Es la mascota "hablando": si gusta, se convierte en la firma de todos tus vídeos.
 
+### Cómo animar las imágenes de la mascota (de foto a vídeo)
+
+**Nivel 0 — Sin animar nada (carrusel):** en TikTok, botón + → arriba elige "Foto" → sube las 6 imágenes → añade música. TikTok las pasa solas al ritmo del sonido. Cero edición. Para el primer post es suficiente.
+
+**Nivel 1 — CapCut con movimiento (15–20 min), el estándar:**
+1. CapCut → "Nuevo proyecto" → importa las 6 imágenes en orden.
+2. Ajusta cada clip a 1,5–2 segundos (arrastra los bordes).
+3. Toca cada clip → **"Animación" → "Combo"** → elige "Zoom suave" o similar (efecto Ken Burns: la imagen se acerca lentamente y parece vídeo).
+4. Entre clip y clip, toca el cuadradito blanco → **transición** "Disolver" o "Deslizar" (0,3 s, siempre la misma).
+5. **Texto** → "Añadir texto" sobre cada clip (los textos del guion), fuente gruesa, blanco con borde negro.
+6. Voz (opcional): escribe el guion en un texto → toca el texto → **"Texto a voz"** → elige una voz en español → luego baja la opacidad del texto o bórralo.
+7. Exporta en 1080p **sin música** y súbelo a TikTok añadiendo allí el **sonido en tendencia** (la música puesta dentro de TikTok cuenta para el algoritmo de tendencias; la de CapCut no).
+
+**Nivel 2 — Plantillas de CapCut (5 min):** CapCut → "Plantillas" → busca "slideshow ritmo" o "photo beat" → elige una con buen ritmo → toca "Usar plantilla" → mete tus 6 fotos → se monta sola sincronizada con la música. Es la vía rápida cuando tengas prisa.
+
+**Nivel 3 — Que la mascota SE MUEVA de verdad (IA imagen-a-vídeo):** herramientas con créditos gratis diarios (Kling AI, Hailuo AI, Pika — regístrate y usa los créditos gratuitos): sube una imagen de la mascota + prompt tipo *"el personaje saluda con la mano y sonríe, animación sutil, el fondo se mantiene estático"*. Genera clips de 3–5 s, descárgalos y móntalos en CapCut como en el Nivel 1. Resultado: la mascota cobra vida. Úsalo para el primer vídeo o los momentos clave; para el día a día, el Nivel 1 sobra.
+
 ### ⚠️ Lo que NO hay que hacer
 
 **No uses vídeos descargados de otros detailers** haciéndolos pasar por trabajo propio: TikTok detecta contenido reutilizado y lo entierra, y si un cliente lo descubre, la confianza (tu único activo ahora) muere. IA y texto para anunciar el reto: sí. Transformaciones: solo reales, cuando lleguen.
