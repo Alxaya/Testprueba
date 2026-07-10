@@ -11,6 +11,7 @@ Plan serio y ejecutable para montar un negocio de limpieza integral de vehículo
 5. [`05-operativa-y-plan-30-dias.md`](05-operativa-y-plan-30-dias.md) — Equipamiento con precios, proceso de trabajo paso a paso, flujo de reservas por WhatsApp y plan día a día de los primeros 30 días.
 6. [`06-configuracion-cuenta-tiktok.md`](06-configuracion-cuenta-tiktok.md) — Configuración de la cuenta paso a paso: nombre, cuenta de empresa, bio, enlace de WhatsApp, WhatsApp Business y checklist final.
 7. [`07-plan-sin-camara-y-sin-inversion.md`](07-plan-sin-camara-y-sin-inversion.md) — Adaptación del plan para no salir a cámara (contenido faceless) y arrancar con 0 € reinvirtiendo los primeros ingresos.
+8. [`08-horarios-y-primer-video.md`](08-horarios-y-primer-video.md) — Horarios de publicación para España y guion plano a plano del primer vídeo (formato "reto día 1", sin cara, sin voz y sin coche). Cuenta creada: @brillodetailing_madrid.
 
 ## Resumen del negocio en 5 líneas
 
