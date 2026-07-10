@@ -130,6 +130,27 @@ Los carruseles de mascota y los vídeos de texto sirven para arrancar y para los
 2. **Día 3 — Primera víctima:** tu coche (aquí ya sí). "Día 3: mi propio coche es el conejillo de indias" → antes/después. El reto conecta con las transformaciones.
 3. **Día 4 — ASMR del cepillo de dientes:** primer plano sacando mugre de las rejillas con el cepillo. "Herramienta profesional: 1 €". El humor de la precariedad + resultado real funciona muy bien.
 
+## 3-ter. Día 2 — Vídeo de texto en CapCut (sin grabar nada)
+
+Estado: Día 1 (carrusel) publicado el 10/07. El Día 2 mantiene la serie con un vídeo de texto de ~20 segundos.
+
+**Materiales:** una imagen de fondo azul oscuro lisa (generada con ChatGPT: "Genera una imagen vertical 9:16 de fondo azul oscuro liso con degradado muy sutil, sin texto ni elementos") + la Foto 6 de la mascota (la de "sígueme").
+
+**Montaje en CapCut:**
+1. Nuevo proyecto → importar el fondo azul y la Foto 6 de la mascota.
+2. Alargar el clip del fondo a ~18 segundos (arrastrar el borde derecho); la foto de la mascota detrás, 2,5 segundos.
+3. Añadir 7 textos consecutivos sobre el fondo (2,5 s cada uno, fuente gruesa, blanco con borde oscuro, centrados, animación de entrada "Aparecer" o "Escribir"):
+   1. "Ayer anuncié que montaba un negocio desde 0 €"
+   2. "Hoy toca ser honesto…"
+   3. "No tengo máquinas. No tengo local."
+   4. "Solo un cubo, un plan y muchas ganas"
+   5. "Cada coche que limpie pagará la siguiente herramienta"
+   6. "Y lo voy a enseñar TODO aquí"
+   7. "DÍA 2. ¿Me acompañas? 👇" (este va sobre la foto de la mascota)
+4. Exportar 1080p SIN música → subir a TikTok → añadir ahí el sonido en tendencia (bajar volumen del sonido a ~50% si tapa la lectura… es solo texto, puede ir alto).
+5. Título: "Día 2. Sin máquinas, sin local, sin excusas 🚗🧼 #madrid #emprender #limpiezadecoches #desdecero"
+6. Publicar a las 19:00. Responder todos los comentarios y compartir al estado de WhatsApp.
+
 ## 4. Qué esperar (para no desanimarse)
 
 - Los primeros 5–10 vídeos suelen hacer 200–800 vistas. Es normal: TikTok está calibrando a quién enseñarte.
