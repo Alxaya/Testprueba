@@ -59,6 +59,19 @@ Formato "storytime en texto": funciona porque la gente lo lee entero (retención
 
 Las 6 imágenes de la Opción A montadas en CapCut como vídeo (1,5 s por imagen, zoom suave) + **texto a voz de CapCut** narrando el guion de la Opción B. Es la mascota "hablando": si gusta, se convierte en la firma de todos tus vídeos.
 
+### Prompts exactos para generar las 6 fotos del carrusel
+
+Instrucciones: abre un chat nuevo en ChatGPT, **sube la imagen del logo** y pega los prompts de uno en uno (mismo chat, para que el personaje sea coherente). Imágenes SIN texto — el texto lo pone TikTok encima. Si alguna sale distinta al personaje: "repítela pero con el personaje idéntico al de mi logo".
+
+1. **Foto 1 (saludo):** "Genera una imagen de este mismo personaje de mi logo (coche azul cartoon sonriente con espuma y ojos grandes) saludando a cámara con una mano levantada y una esponja amarilla en la otra. Mismo estilo cartoon y colores exactos del logo. Formato vertical 9:16, fondo azul claro simple, sin ningún texto."
+2. **Foto 2 (Madrid):** "El mismo personaje, sonriente, delante de un skyline de Madrid estilo cartoon (Puerta de Alcalá y las Torres Kio de fondo, simplificadas). Mismo estilo y colores. Vertical 9:16, sin texto."
+3. **Foto 3 (el plan):** "El mismo personaje mirando concentrado un papel grande desplegado que sostiene con las manos, con gesto de estar estudiando un plan (el papel solo con garabatos, sin letras legibles). Mismo estilo y colores. Vertical 9:16, fondo simple, sin texto."
+4. **Foto 4 (decidido):** "El mismo personaje con un cubo de limpieza rojo a su lado y expresión decidida y motivada, cejas fruncidas de determinación pero sonriendo. Mismo estilo y colores. Vertical 9:16, fondo simple, sin texto."
+5. **Foto 5 (fuerza):** "El mismo personaje sacando músculos con los dos brazos flexionados, rodeado de destellos y estrellas de brillo, expresión triunfante. Mismo estilo y colores. Vertical 9:16, fondo simple, sin texto."
+6. **Foto 6 (sígueme):** "El mismo personaje señalando hacia abajo con una mano, sonrisa enorme y guiñando un ojo. Mismo estilo y colores. Vertical 9:16, fondo simple, sin texto."
+
+Con las 6 fotos: TikTok → + → modo "Foto" → subirlas en orden → escribir encima el texto de cada diapositiva (sección Opción A) → sonido en tendencia → publicar a las 19:00.
+
 ### Cómo animar las imágenes de la mascota (de foto a vídeo)
 
 **Nivel 0 — Sin animar nada (carrusel):** en TikTok, botón + → arriba elige "Foto" → sube las 6 imágenes → añade música. TikTok las pasa solas al ritmo del sonido. Cero edición. Para el primer post es suficiente.
