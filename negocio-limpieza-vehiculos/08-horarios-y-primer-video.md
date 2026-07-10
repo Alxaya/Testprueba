@@ -23,7 +23,51 @@ Reglas:
 3. No publiques dos vídeos con menos de 4 horas de diferencia (se canibalizan).
 4. Graba en tanda y deja los vídeos programados o listos en borradores: la racha no se puede romper el primer mes.
 
-## 3. El primer vídeo: "EL RETO — Día 1" (sin cara, sin voz, sin coche)
+## 3. El primer vídeo SIN GRABAR NADA (100% hecho con IA + CapCut)
+
+> Requisito del dueño: el primer vídeo no debe requerir grabar nada — ni coche, ni manos, ni objetos. Todo generado desde el móvil.
+
+### Opción A — Carrusel con la mascota (RECOMENDADA)
+
+TikTok empuja mucho el **modo foto (carrusel)** y no exige grabar nada. La mascota del logo se convierte en el personaje de la cuenta — resuelve el problema "faceless" para siempre.
+
+1. En ChatGPT, sube la imagen del logo y pide: *"Usando exactamente este mismo personaje (coche azul sonriente con espuma), genera una imagen suya [escena]. Mismo estilo cartoon, formato vertical 9:16."* Genera 6 escenas:
+   - Saludando con una esponja en la mano
+   - Delante de un skyline de Madrid (Kio/Gran Vía)
+   - Mirando una lista/plan en un papel
+   - Con un cubo y cara decidida
+   - Flexionando "músculos" con brillos
+   - Señalando hacia abajo (hacia el botón de seguir)
+2. Publica como carrusel (botón + → cambiar a "Foto") con este texto por diapositiva:
+   1. "Hola Madrid 👋 Soy Brillo"
+   2. "Mi humano va a montar un negocio de limpieza de coches"
+   3. "Presupuesto: 0 € · Local: no hay · Su cara: no la veréis NUNCA 😂"
+   4. "El plan: dejar tu coche como nuevo, en la puerta de tu casa"
+   5. "Cada coche que limpiemos pagará la siguiente herramienta"
+   6. "Día 1 de 365. ¿Crees que lo conseguimos? Sígueme y compruébalo 👇"
+3. Música en tendencia + descripción: *"Día 1. Un negocio desde 0 € contado por su mascota 🚗🧼 #madrid #emprender #reto #limpiezadecoches #desdecero"*
+
+### Opción B — Vídeo solo texto (el más rápido, 15 min)
+
+En CapCut: fondo sólido azul oscuro (o el logo difuminado) + textos grandes que aparecen al ritmo de una canción en tendencia:
+
+> "Voy a montar un negocio en Madrid" → "sin dinero" → "sin local" → "y sin que me veas la cara ni una vez" → "limpieza de coches a domicilio" → "cada cliente paga la siguiente herramienta" → "esto es el DÍA 1" → "quédate a ver cómo acaba 👇"
+
+Formato "storytime en texto": funciona porque la gente lo lee entero (retención altísima) y comenta.
+
+### Opción C — Voz de IA + imágenes de la mascota
+
+Las 6 imágenes de la Opción A montadas en CapCut como vídeo (1,5 s por imagen, zoom suave) + **texto a voz de CapCut** narrando el guion de la Opción B. Es la mascota "hablando": si gusta, se convierte en la firma de todos tus vídeos.
+
+### ⚠️ Lo que NO hay que hacer
+
+**No uses vídeos descargados de otros detailers** haciéndolos pasar por trabajo propio: TikTok detecta contenido reutilizado y lo entierra, y si un cliente lo descubre, la confianza (tu único activo ahora) muere. IA y texto para anunciar el reto: sí. Transformaciones: solo reales, cuando lleguen.
+
+### Después del primer vídeo
+
+Los carruseles de mascota y los vídeos de texto sirven para arrancar y para los vídeos "de negocio", pero **lo que trae clientes son las transformaciones reales**. El plan sigue siendo: en cuanto puedas, tu propio coche como primera víctima (solo se ven el coche y la suciedad — nada de ti). Mientras tanto, alterna: mascota/texto (reto) + educativos con imágenes IA.
+
+## 3-bis. Guion original "manos y cubo" (por si algún día se quiere grabar)
 
 **Concepto:** no explicas tu negocio, planteas un reto. En TikTok las historias en serie ("día 1", "día 2"...) enganchan porque la gente sigue para ver cómo acaba. Tu limitación (sin dinero, sin cara) ES el gancho.
 
