@@ -161,6 +161,27 @@ Format: Layer, Start, End, Style, Text
     destino.write_text(cab + "\n".join(lineas) + "\n", encoding="utf-8")
 
 
+def _voz_completa(bruto: Path, fin_habla: float) -> bool:
+    """Comprueba que hay voz audible en todos los tramos donde hay palabras.
+
+    edge-tts a veces devuelve el audio roto a mitad (el resto llega casi mudo
+    aunque los tiempos de palabras existan); esto lo detecta para reintentar.
+    """
+    t = 0.0
+    while t < fin_habla - 2:
+        r = subprocess.run(
+            [ffmpeg_exe(), "-ss", str(t), "-t", "10", "-i", str(bruto),
+             "-af", "volumedetect", "-f", "null", "-"],
+            capture_output=True, text=True,
+        )
+        m = re.search(r"max_volume: (-?[\d.]+) dB", r.stderr)
+        if m and float(m.group(1)) < -40:
+            print(f"⚠️  Voz casi muda en el tramo {t:.0f}-{t + 10:.0f}s")
+            return False
+        t += 10
+    return True
+
+
 def cmd_voz(args):
     guion = SALIDA / "guion.txt"
     if not guion.exists():
@@ -168,7 +189,13 @@ def cmd_voz(args):
     texto = guion.read_text(encoding="utf-8").strip()
 
     bruto = SALIDA / "voz_bruto.mp3"
-    palabras = asyncio.run(_generar_voz(texto, args.voz, bruto, args.ritmo, args.tono))
+    for intento in range(1, 4):
+        palabras = asyncio.run(_generar_voz(texto, args.voz, bruto, args.ritmo, args.tono))
+        if palabras and _voz_completa(bruto, palabras[-1][1]):
+            break
+        print(f"Reintentando la generación de voz ({intento}/3)...")
+    else:
+        sys.exit("edge-tts devolvió audio roto en 3 intentos; prueba de nuevo en unos minutos")
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
@@ -201,10 +228,10 @@ def cmd_voz(args):
     mp3 = SALIDA / "voz.wav"
     r = subprocess.run(
         [ffmpeg_exe(), "-y", "-i", str(bruto), "-af",
-         # soxr obligatorio: el remuestreador por defecto de esta build mete
-         # un silbido fortísimo en 12 kHz al subir de 24 a 48 kHz
-         cadena + f",volume={ganancia:.2f}dB,alimiter=limit=0.89,"
-         "aresample=48000:resampler=soxr",
+         # NUNCA remuestrear: los dos remuestreadores de esta build están rotos
+         # (el normal silba a 12 kHz y soxr va apagando la voz con el tiempo);
+         # todo el pipeline trabaja a los 24 kHz nativos de edge-tts
+         cadena + f",volume={ganancia:.2f}dB,alimiter=limit=0.89",
          str(mp3)],
         capture_output=True, text=True,
     )
@@ -277,9 +304,9 @@ def cmd_musica(args):
     destino = SALIDA / "musica.wav"
     # solo ruido filtrado (viento/rumor grave): sin tonos puros que suenen a pitido
     filtro = (
-        f"anoisesrc=color=brown:seed=1:d={dur:.1f},lowpass=f=450,highpass=f=45,"
+        f"anoisesrc=color=brown:seed=1:r=24000:d={dur:.1f},lowpass=f=450,highpass=f=45,"
         "tremolo=f=0.1:d=0.55[w1];"
-        f"anoisesrc=color=brown:seed=7:d={dur:.1f},lowpass=f=120,"
+        f"anoisesrc=color=brown:seed=7:r=24000:d={dur:.1f},lowpass=f=120,"
         "tremolo=f=0.13:d=0.5[w2];"
         "[w1][w2]amix=inputs=2:normalize=0,"
         f"afade=t=in:d=2,afade=t=out:st={dur - 3:.1f}:d=3,volume=0.7"
@@ -327,10 +354,10 @@ def cmd_montar(args):
         f"subtitles='{subs}':fontsdir=/usr/share/fonts[vf]"
     )
 
-    # si hay música de fondo, mezclarla baja debajo de la voz
+    # música de fondo solo si se pide explícitamente con --musica
     musica = SALIDA / "musica.wav"
     n = len(clips)
-    if musica.exists():
+    if args.musica and musica.exists():
         entradas += ["-i", str(voz), "-stream_loop", "-1", "-i", str(musica)]
         filtros.append(
             f"[{n + 1}:a]volume=0.12[mus];"
@@ -347,7 +374,7 @@ def cmd_montar(args):
          "-filter_complex", ";".join(filtros),
          "-map", "[vf]", "-map", mapa_audio,
          "-c:v", "libx264", "-preset", "fast", "-crf", "27",
-         "-c:a", "aac", "-b:a", "128k", "-shortest", str(destino)]
+         "-c:a", "aac", "-b:a", "96k", "-ar", "24000", "-shortest", str(destino)]
     )
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
@@ -387,6 +414,8 @@ def main():
     vi.set_defaults(fn=cmd_visuales)
 
     m = sub.add_parser("montar", help="Montar el video final 9:16")
+    m.add_argument("--musica", action="store_true",
+                   help="Mezclar salida/musica.wav de fondo (por defecto: solo voz)")
     m.set_defaults(fn=cmd_montar)
 
     args = p.parse_args()
