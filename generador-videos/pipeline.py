@@ -375,8 +375,8 @@ def main():
 
     v = sub.add_parser("voz", help="Generar voz en off y subtítulos desde salida/guion.txt")
     v.add_argument("--voz", default=VOZ_DEFECTO)
-    v.add_argument("--ritmo", default="+8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
-    v.add_argument("--tono", default="+0Hz", help="Tono, ej: -20Hz (más grave) o +10Hz (más agudo)")
+    v.add_argument("--ritmo", default="-8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
+    v.add_argument("--tono", default="-12Hz", help="Tono, ej: -20Hz (más grave) o +10Hz (más agudo)")
     v.set_defaults(fn=cmd_voz)
 
     mu = sub.add_parser("musica", help="Generar música ambiental de suspense (sin copyright)")
