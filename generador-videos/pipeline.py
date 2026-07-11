@@ -174,13 +174,34 @@ def cmd_voz(args):
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
 
     # procesado para sonar menos sintético: recorte de graves/agudos extremos,
-    # compresión suave, un toque muy sutil de sala y volumen normalizado
-    mp3 = SALIDA / "voz.mp3"
+    # compresión suave y un toque muy sutil de sala
+    cadena = (
+        "highpass=f=75,lowpass=f=12000,"
+        "acompressor=threshold=-26dB:ratio=3:attack=10:release=250:makeup=5dB,"
+        "acompressor=threshold=-16dB:ratio=2:attack=10:release=250:makeup=2dB,"
+        "aecho=0.7:0.22:16:0.06"
+    )
+
+    # normalización en dos pasadas (ganancia FIJA, nunca varía a mitad de video):
+    # 1ª pasada mide el volumen, 2ª aplica la corrección exacta
+    r = subprocess.run(
+        [ffmpeg_exe(), "-i", str(bruto), "-af",
+         cadena + ",loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
+        capture_output=True, text=True,
+    )
+    m = re.search(r"\{[^{}]+\}", r.stderr[r.stderr.rfind("Parsed_loudnorm"):])
+    if not m:
+        sys.exit(f"ffmpeg falló midiendo el volumen:\n{r.stderr[-1500:]}")
+    med = json.loads(m.group(0))
+
+    mp3 = SALIDA / "voz.wav"
     r = subprocess.run(
         [ffmpeg_exe(), "-y", "-i", str(bruto), "-af",
-         "highpass=f=75,lowpass=f=12000,"
-         "acompressor=threshold=-18dB:ratio=2.5:attack=15:release=200,"
-         "aecho=0.7:0.22:16:0.06,loudnorm=I=-16:TP=-1.5:LRA=9",
+         cadena + (
+             ",loudnorm=I=-16:TP=-1.5:LRA=11:linear=true"
+             f":measured_I={med['input_i']}:measured_TP={med['input_tp']}"
+             f":measured_LRA={med['input_lra']}:measured_thresh={med['input_thresh']}"
+         ),
          str(mp3)],
         capture_output=True, text=True,
     )
@@ -248,16 +269,17 @@ def cmd_visuales(args):
 
 def cmd_musica(args):
     """Genera una cama ambiental de suspense sintetizada (sin copyright)."""
-    voz = SALIDA / "voz.mp3"
+    voz = SALIDA / "voz.wav"
     dur = duracion_audio(voz) + 2 if voz.exists() else 70
-    destino = SALIDA / "musica.mp3"
+    destino = SALIDA / "musica.wav"
+    # solo ruido filtrado (viento/rumor grave): sin tonos puros que suenen a pitido
     filtro = (
-        f"sine=f=55:d={dur:.1f}[a];"
-        f"sine=f=82.4:d={dur:.1f},volume=0.35[b];"
-        f"anoisesrc=color=brown:d={dur:.1f},lowpass=f=160,volume=0.5[c];"
-        "[a][b][c]amix=inputs=3:normalize=0,"
-        "vibrato=f=0.25:d=0.25,tremolo=f=0.11:d=0.4,"
-        f"afade=t=in:d=2,afade=t=out:st={dur - 3:.1f}:d=3,volume=0.8"
+        f"anoisesrc=color=brown:seed=1:d={dur:.1f},lowpass=f=450,highpass=f=45,"
+        "tremolo=f=0.1:d=0.55[w1];"
+        f"anoisesrc=color=brown:seed=7:d={dur:.1f},lowpass=f=120,"
+        "tremolo=f=0.13:d=0.5[w2];"
+        "[w1][w2]amix=inputs=2:normalize=0,"
+        f"afade=t=in:d=2,afade=t=out:st={dur - 3:.1f}:d=3,volume=0.7"
     )
     r = subprocess.run(
         [ffmpeg_exe(), "-y", "-f", "lavfi", "-i", filtro, str(destino)],
@@ -271,11 +293,11 @@ def cmd_musica(args):
 # ── 6. Montar el video final ─────────────────────────────────────────────────
 
 def cmd_montar(args):
-    voz = SALIDA / "voz.mp3"
+    voz = SALIDA / "voz.wav"
     subs = SALIDA / "subtitulos.ass"
     clips = sorted(CLIPS.glob("*.mp4"))
     if not voz.exists() or not subs.exists():
-        sys.exit("Faltan salida/voz.mp3 o salida/subtitulos.ass (ejecuta: python pipeline.py voz)")
+        sys.exit("Faltan salida/voz.wav o salida/subtitulos.ass (ejecuta: python pipeline.py voz)")
     if not clips:
         sys.exit("No hay clips en salida/clips (ejecuta: python pipeline.py visuales \"tema1, tema2\")")
 
@@ -303,12 +325,12 @@ def cmd_montar(args):
     )
 
     # si hay música de fondo, mezclarla baja debajo de la voz
-    musica = SALIDA / "musica.mp3"
+    musica = SALIDA / "musica.wav"
     n = len(clips)
     if musica.exists():
         entradas += ["-i", str(voz), "-stream_loop", "-1", "-i", str(musica)]
         filtros.append(
-            f"[{n + 1}:a]volume=0.16[mus];"
+            f"[{n + 1}:a]volume=0.12[mus];"
             f"[{n}:a][mus]amix=inputs=2:duration=first:normalize=0[af]"
         )
         mapa_audio = "[af]"
