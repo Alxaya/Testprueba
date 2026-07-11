@@ -200,43 +200,17 @@ def cmd_voz(args):
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
 
-    # procesado para sonar menos sintético: recorte de graves/agudos extremos,
-    # compresión suave y un toque muy sutil de sala
-    cadena = (
-        "highpass=f=75,lowpass=f=12000,"
-        "acompressor=threshold=-26dB:ratio=3:attack=10:release=250:makeup=5dB,"
-        "acompressor=threshold=-16dB:ratio=2:attack=10:release=250:makeup=2dB,"
-        "aecho=0.7:0.22:16:0.06"
-    )
-
-    # normalización en dos pasadas (ganancia FIJA, nunca varía a mitad de video):
-    # 1ª pasada mide el volumen, 2ª aplica la corrección exacta
-    r = subprocess.run(
-        [ffmpeg_exe(), "-i", str(bruto), "-af",
-         cadena + ",loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
-        capture_output=True, text=True,
-    )
-    m = re.search(r"\{[^{}]+\}", r.stderr[r.stderr.rfind("Parsed_loudnorm"):])
-    if not m:
-        sys.exit(f"ffmpeg falló midiendo el volumen:\n{r.stderr[-1500:]}")
-    med = json.loads(m.group(0))
-
-    # ganancia fija calculada desde la medición; NO usar loudnorm en la pasada
-    # de render: su remuestreo interno a 192 kHz mete un silbido en 12 kHz
-    ganancia = max(-20.0, min(20.0, -16.0 - float(med["input_i"])))
-
+    # SIN procesado: la voz va tal cual sale de edge-tts. Cualquier filtro o
+    # remuestreo con el ffmpeg de imageio ensucia el audio (silbido a 12 kHz,
+    # voz que se apaga, siseo de fondo). Solo se decodifica el mp3 a WAV,
+    # manteniendo los 24 kHz nativos.
     mp3 = SALIDA / "voz.wav"
     r = subprocess.run(
-        [ffmpeg_exe(), "-y", "-i", str(bruto), "-af",
-         # NUNCA remuestrear: los dos remuestreadores de esta build están rotos
-         # (el normal silba a 12 kHz y soxr va apagando la voz con el tiempo);
-         # todo el pipeline trabaja a los 24 kHz nativos de edge-tts
-         cadena + f",volume={ganancia:.2f}dB,alimiter=limit=0.89",
-         str(mp3)],
+        [ffmpeg_exe(), "-y", "-i", str(bruto), str(mp3)],
         capture_output=True, text=True,
     )
     if r.returncode != 0:
-        sys.exit(f"ffmpeg falló procesando la voz:\n{r.stderr[-1500:]}")
+        sys.exit(f"ffmpeg falló convirtiendo la voz:\n{r.stderr[-1500:]}")
     bruto.unlink()
     print(f"✅ Voz en {mp3} ({duracion_audio(mp3):.1f}s) y subtítulos en salida/subtitulos.ass")
 
