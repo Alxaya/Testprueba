@@ -208,6 +208,8 @@ def cmd_visuales(args):
         if not videos:
             print(f"⚠️  Sin resultados para '{consulta}'")
             continue
+        # prefiere clips de al menos 5s para que no haya que congelar fotogramas
+        videos.sort(key=lambda v: v.get("duration", 0) < 5)
         for video in videos[: args.por_tema]:
             # elige el archivo vertical de mayor calidad razonable (~1080 de ancho máx.)
             archivos = [f for f in video["video_files"] if f["width"] <= 1200 and f["height"] > f["width"]]
@@ -244,11 +246,14 @@ def cmd_montar(args):
     entradas, filtros, etiquetas = [], [], []
     for i, clip in enumerate(clips):
         entradas += ["-i", str(clip)]
+        # recorta al segmento; si el clip es más corto, clona el último fotograma
+        # solo lo que falte (el trim final garantiza duración exacta)
         filtros.append(
             f"[{i}:v]trim=duration={seg:.3f},setpts=PTS-STARTPTS,"
             f"scale={ANCHO}:{ALTO}:force_original_aspect_ratio=increase,"
             f"crop={ANCHO}:{ALTO},fps=30,"
-            f"tpad=stop_mode=clone:stop_duration={seg:.3f}[v{i}]"
+            f"tpad=stop_mode=clone:stop_duration={seg:.3f},"
+            f"trim=duration={seg:.3f},setpts=PTS-STARTPTS[v{i}]"
         )
         etiquetas.append(f"[v{i}]")
 
