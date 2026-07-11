@@ -117,11 +117,11 @@ def cmd_prompt(args):
 
 # ── 4. Voz en off + subtítulos ───────────────────────────────────────────────
 
-async def _generar_voz(texto: str, voz: str, mp3: Path):
+async def _generar_voz(texto: str, voz: str, mp3: Path, ritmo: str, tono: str):
     import edge_tts
 
     palabras = []  # (inicio_s, fin_s, palabra)
-    com = edge_tts.Communicate(texto, voz, rate="+8%", boundary="WordBoundary")
+    com = edge_tts.Communicate(texto, voz, rate=ritmo, pitch=tono, boundary="WordBoundary")
     with open(mp3, "wb") as f:
         async for chunk in com.stream():
             if chunk["type"] == "audio":
@@ -168,7 +168,7 @@ def cmd_voz(args):
     texto = guion.read_text(encoding="utf-8").strip()
 
     mp3 = SALIDA / "voz.mp3"
-    palabras = asyncio.run(_generar_voz(texto, args.voz, mp3))
+    palabras = asyncio.run(_generar_voz(texto, args.voz, mp3, args.ritmo, args.tono))
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
@@ -268,7 +268,7 @@ def cmd_montar(args):
         [ffmpeg_exe(), "-y", *entradas, "-i", str(voz),
          "-filter_complex", ";".join(filtros),
          "-map", "[vf]", "-map", f"{len(clips)}:a",
-         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+         "-c:v", "libx264", "-preset", "fast", "-crf", "27",
          "-c:a", "aac", "-b:a", "128k", "-shortest", str(destino)]
     )
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -296,6 +296,8 @@ def main():
 
     v = sub.add_parser("voz", help="Generar voz en off y subtítulos desde salida/guion.txt")
     v.add_argument("--voz", default=VOZ_DEFECTO)
+    v.add_argument("--ritmo", default="+8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
+    v.add_argument("--tono", default="+0Hz", help="Tono, ej: -20Hz (más grave) o +10Hz (más agudo)")
     v.set_defaults(fn=cmd_voz)
 
     vi = sub.add_parser("visuales", help="Descargar clips de stock desde Pexels")
