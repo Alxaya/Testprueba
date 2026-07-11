@@ -1,0 +1,5 @@
+yt-dlp
+edge-tts
+faster-whisper
+imageio-ffmpeg
+httpx
