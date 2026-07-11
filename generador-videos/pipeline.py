@@ -31,7 +31,7 @@ from pathlib import Path
 
 SALIDA = Path(__file__).parent / "salida"
 CLIPS = SALIDA / "clips"
-VOZ_DEFECTO = "es-ES-AlvaroNeural"  # otras: es-MX-JorgeNeural, es-ES-ElviraNeural
+VOZ_DEFECTO = "es-MX-JorgeNeural"  # otras: es-ES-AlvaroNeural, es-MX-DaliaNeural
 ANCHO, ALTO = 1080, 1920
 
 
@@ -167,11 +167,26 @@ def cmd_voz(args):
         sys.exit("Escribe tu guion nuevo en salida/guion.txt (ver: python pipeline.py prompt)")
     texto = guion.read_text(encoding="utf-8").strip()
 
-    mp3 = SALIDA / "voz.mp3"
-    palabras = asyncio.run(_generar_voz(texto, args.voz, mp3, args.ritmo, args.tono))
+    bruto = SALIDA / "voz_bruto.mp3"
+    palabras = asyncio.run(_generar_voz(texto, args.voz, bruto, args.ritmo, args.tono))
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
+
+    # procesado para sonar menos sintético: recorte de graves/agudos extremos,
+    # compresión suave, un toque muy sutil de sala y volumen normalizado
+    mp3 = SALIDA / "voz.mp3"
+    r = subprocess.run(
+        [ffmpeg_exe(), "-y", "-i", str(bruto), "-af",
+         "highpass=f=75,lowpass=f=12000,"
+         "acompressor=threshold=-18dB:ratio=2.5:attack=15:release=200,"
+         "aecho=0.7:0.22:16:0.06,loudnorm=I=-16:TP=-1.5:LRA=9",
+         str(mp3)],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        sys.exit(f"ffmpeg falló procesando la voz:\n{r.stderr[-1500:]}")
+    bruto.unlink()
     print(f"✅ Voz en {mp3} ({duracion_audio(mp3):.1f}s) y subtítulos en salida/subtitulos.ass")
 
 
@@ -229,6 +244,30 @@ def cmd_visuales(args):
     print(f"✅ {n} clips en {CLIPS}")
 
 
+# ── 5b. Música de fondo ──────────────────────────────────────────────────────
+
+def cmd_musica(args):
+    """Genera una cama ambiental de suspense sintetizada (sin copyright)."""
+    voz = SALIDA / "voz.mp3"
+    dur = duracion_audio(voz) + 2 if voz.exists() else 70
+    destino = SALIDA / "musica.mp3"
+    filtro = (
+        f"sine=f=55:d={dur:.1f}[a];"
+        f"sine=f=82.4:d={dur:.1f},volume=0.35[b];"
+        f"anoisesrc=color=brown:d={dur:.1f},lowpass=f=160,volume=0.5[c];"
+        "[a][b][c]amix=inputs=3:normalize=0,"
+        "vibrato=f=0.25:d=0.25,tremolo=f=0.11:d=0.4,"
+        f"afade=t=in:d=2,afade=t=out:st={dur - 3:.1f}:d=3,volume=0.8"
+    )
+    r = subprocess.run(
+        [ffmpeg_exe(), "-y", "-f", "lavfi", "-i", filtro, str(destino)],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        sys.exit(f"ffmpeg falló generando la música:\n{r.stderr[-1500:]}")
+    print(f"✅ Música ambiental en {destino} ({dur:.0f}s)")
+
+
 # ── 6. Montar el video final ─────────────────────────────────────────────────
 
 def cmd_montar(args):
@@ -263,11 +302,25 @@ def cmd_montar(args):
         f"subtitles='{subs}':fontsdir=/usr/share/fonts[vf]"
     )
 
+    # si hay música de fondo, mezclarla baja debajo de la voz
+    musica = SALIDA / "musica.mp3"
+    n = len(clips)
+    if musica.exists():
+        entradas += ["-i", str(voz), "-stream_loop", "-1", "-i", str(musica)]
+        filtros.append(
+            f"[{n + 1}:a]volume=0.16[mus];"
+            f"[{n}:a][mus]amix=inputs=2:duration=first:normalize=0[af]"
+        )
+        mapa_audio = "[af]"
+    else:
+        entradas += ["-i", str(voz)]
+        mapa_audio = f"{n}:a"
+
     destino = SALIDA / "video_final.mp4"
     cmd = (
-        [ffmpeg_exe(), "-y", *entradas, "-i", str(voz),
+        [ffmpeg_exe(), "-y", *entradas,
          "-filter_complex", ";".join(filtros),
-         "-map", "[vf]", "-map", f"{len(clips)}:a",
+         "-map", "[vf]", "-map", mapa_audio,
          "-c:v", "libx264", "-preset", "fast", "-crf", "27",
          "-c:a", "aac", "-b:a", "128k", "-shortest", str(destino)]
     )
@@ -299,6 +352,9 @@ def main():
     v.add_argument("--ritmo", default="+8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
     v.add_argument("--tono", default="+0Hz", help="Tono, ej: -20Hz (más grave) o +10Hz (más agudo)")
     v.set_defaults(fn=cmd_voz)
+
+    mu = sub.add_parser("musica", help="Generar música ambiental de suspense (sin copyright)")
+    mu.set_defaults(fn=cmd_musica)
 
     vi = sub.add_parser("visuales", help="Descargar clips de stock desde Pexels")
     vi.add_argument("temas", help='Temas separados por coma, ej: "city night, typing on laptop"')
