@@ -133,8 +133,12 @@ async def _generar_voz(texto: str, voz: str, mp3: Path, ritmo: str, tono: str):
     return palabras
 
 
-def _ass_desde_palabras(palabras, destino: Path, por_grupo=3):
-    """Subtítulos ASS grandes y centrados, en grupos de pocas palabras (estilo TikTok)."""
+def _ass_desde_palabras(palabras, destino: Path, por_grupo=3, titulo=None):
+    """Subtítulos ASS grandes y centrados, en grupos de pocas palabras (estilo TikTok).
+
+    Si se pasa `titulo`, se muestra como portada gigante en la parte alta
+    durante los primeros 2.8s: el gancho debe leerse en el fotograma 0.
+    """
     cab = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {ANCHO}
@@ -143,6 +147,7 @@ PlayResY: {ALTO}
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Outline, Shadow, Alignment, MarginL, MarginR, MarginV
 Style: TikTok,DejaVu Sans,110,&H00FFFFFF,&H00000000,&H80000000,-1,8,2,5,60,60,0
+Style: Portada,DejaVu Sans,95,&H0000E7FF,&H00000000,&H90000000,-1,9,3,8,50,50,320
 
 [Events]
 Format: Layer, Start, End, Style, Text
@@ -153,6 +158,8 @@ Format: Layer, Start, End, Style, Text
         return f"{h}:{m:02d}:{s:05.2f}"
 
     lineas = []
+    if titulo:
+        lineas.append(f"Dialogue: 1,0:00:00.00,0:00:02.80,Portada,{titulo.upper()}")
     for i in range(0, len(palabras), por_grupo):
         grupo = palabras[i : i + por_grupo]
         ini, fin = grupo[0][0], grupo[-1][1]
@@ -198,7 +205,7 @@ def cmd_voz(args):
         sys.exit("edge-tts devolvió audio roto en 3 intentos; prueba de nuevo en unos minutos")
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
-    _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass")
+    _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass", titulo=args.titulo)
 
     # SIN procesado: la voz va tal cual sale de edge-tts. Cualquier filtro o
     # remuestreo con el ffmpeg de imageio ensucia el audio (silbido a 12 kHz,
@@ -375,6 +382,8 @@ def main():
 
     v = sub.add_parser("voz", help="Generar voz en off y subtítulos desde salida/guion.txt")
     v.add_argument("--voz", default=VOZ_DEFECTO)
+    v.add_argument("--titulo", default=None,
+                   help="Portada de texto gigante en los primeros 2.8s (el gancho escrito)")
     v.add_argument("--ritmo", default="-8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
     v.add_argument("--tono", default="-12Hz", help="Tono, ej: -20Hz (más grave) o +10Hz (más agudo)")
     v.set_defaults(fn=cmd_voz)
