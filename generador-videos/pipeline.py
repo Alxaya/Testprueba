@@ -194,14 +194,17 @@ def cmd_voz(args):
         sys.exit(f"ffmpeg falló midiendo el volumen:\n{r.stderr[-1500:]}")
     med = json.loads(m.group(0))
 
+    # ganancia fija calculada desde la medición; NO usar loudnorm en la pasada
+    # de render: su remuestreo interno a 192 kHz mete un silbido en 12 kHz
+    ganancia = max(-20.0, min(20.0, -16.0 - float(med["input_i"])))
+
     mp3 = SALIDA / "voz.wav"
     r = subprocess.run(
         [ffmpeg_exe(), "-y", "-i", str(bruto), "-af",
-         cadena + (
-             ",loudnorm=I=-16:TP=-1.5:LRA=11:linear=true"
-             f":measured_I={med['input_i']}:measured_TP={med['input_tp']}"
-             f":measured_LRA={med['input_lra']}:measured_thresh={med['input_thresh']}"
-         ),
+         # soxr obligatorio: el remuestreador por defecto de esta build mete
+         # un silbido fortísimo en 12 kHz al subir de 24 a 48 kHz
+         cadena + f",volume={ganancia:.2f}dB,alimiter=limit=0.89,"
+         "aresample=48000:resampler=soxr",
          str(mp3)],
         capture_output=True, text=True,
     )
