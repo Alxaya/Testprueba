@@ -131,9 +131,11 @@ async function api(pathname, { method = "GET", query, body } = {}) {
   return data.data ?? data;
 }
 
+// solo campos cubiertos por user.info.basic + user.info.stats
+// (bio_description, profile_deep_link e is_verified exigirían user.info.profile)
 const USER_FIELDS =
-  "open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link," +
-  "is_verified,follower_count,following_count,likes_count,video_count";
+  "open_id,union_id,avatar_url,display_name," +
+  "follower_count,following_count,likes_count,video_count";
 
 const VIDEO_FIELDS =
   "id,create_time,title,video_description,duration,cover_image_url,share_url," +
