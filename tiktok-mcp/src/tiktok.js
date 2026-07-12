@@ -182,6 +182,47 @@ export function postVideo({ videoUrl, title, privacyLevel = "SELF_ONLY" }) {
   });
 }
 
+// Sube un video a los BORRADORES del usuario (inbox upload). Funciona en
+// sandbox con el scope video.upload: el usuario recibe una notificación en
+// TikTok y completa la publicación (caption + botón publicar) desde la app.
+export async function uploadDraft({ videoUrl }) {
+  const vres = await fetch(videoUrl);
+  if (!vres.ok) throw new Error(`No pude descargar el video (${vres.status}): ${videoUrl}`);
+  const buf = Buffer.from(await vres.arrayBuffer());
+  const size = buf.length;
+  if (size > 64 * 1024 * 1024) throw new Error("Video de más de 64 MB: trocéalo o comprímelo");
+
+  const init = await api("/v2/post/publish/inbox/video/init/", {
+    method: "POST",
+    body: {
+      source_info: {
+        source: "FILE_UPLOAD",
+        video_size: size,
+        chunk_size: size,
+        total_chunk_count: 1,
+      },
+    },
+  });
+
+  const up = await fetch(init.upload_url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "video/mp4",
+      "Content-Range": `bytes 0-${size - 1}/${size}`,
+      "Content-Length": String(size),
+    },
+    body: buf,
+  });
+  if (!up.ok) throw new Error(`Fallo subiendo a TikTok (${up.status}): ${await up.text()}`);
+
+  return {
+    publish_id: init.publish_id,
+    estado: "enviado a tus borradores de TikTok",
+    siguiente_paso:
+      "Abre la app de TikTok: te llegará una notificación para completar la publicación (añade el caption y publica).",
+  };
+}
+
 export function postStatus(publishId) {
   return api("/v2/post/publish/status/fetch/", {
     method: "POST",
