@@ -87,6 +87,17 @@ app.get("/auth/callback", async (req, res) => {
   }
 });
 
+// ── Verificación de dominio de TikTok ────────────────────────────────────────
+// Define en Railway: TIKTOK_VERIFY_FILE (ej. tiktokAbCd123.txt) y
+// TIKTOK_VERIFY_CONTENT (el contenido que te dé el portal). El servidor
+// servirá https://tu-dominio/<TIKTOK_VERIFY_FILE> para pasar la verificación.
+
+if (process.env.TIKTOK_VERIFY_FILE && process.env.TIKTOK_VERIFY_CONTENT) {
+  app.get(`/${process.env.TIKTOK_VERIFY_FILE}`, (_req, res) => {
+    res.type("text/plain").send(process.env.TIKTOK_VERIFY_CONTENT);
+  });
+}
+
 // ── Página de estado ─────────────────────────────────────────────────────────
 
 app.get("/", (_req, res) => {
