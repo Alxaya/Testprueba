@@ -98,6 +98,14 @@ if (process.env.TIKTOK_VERIFY_FILE && process.env.TIKTOK_VERIFY_CONTENT) {
   });
 }
 
+// Genérico: el contenido de los archivos de verificación de TikTok es siempre
+// "tiktok-developers-site-verification=<firma>", con la firma incluida en el
+// propio nombre del archivo — así respondemos a todas las verificaciones
+// (producción, sandbox y futuras) sin configurar nada.
+app.get(/^\/tiktok([A-Za-z0-9]+)\.txt$/, (req, res) => {
+  res.type("text/plain").send(`tiktok-developers-site-verification=${req.params[0]}`);
+});
+
 // ── Página de estado ─────────────────────────────────────────────────────────
 
 app.get("/", (_req, res) => {
