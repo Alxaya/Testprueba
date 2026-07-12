@@ -13,7 +13,7 @@ import crypto from "node:crypto";
 import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { buildServer } from "./tools.js";
-import { authStatus, buildAuthUrl, exchangeCode, config } from "./tiktok.js";
+import { authStatus, buildAuthUrl, exchangeCode, config, uploadDraftBuffer } from "./tiktok.js";
 
 const app = express();
 app.use(express.json({ limit: "4mb" }));
@@ -54,6 +54,23 @@ const notAllowed = (_req, res) =>
   });
 app.get(`${prefix}/mcp`, notAllowed);
 app.delete(`${prefix}/mcp`, notAllowed);
+
+// ── Subida directa de borradores ─────────────────────────────────────────────
+// POST {prefijo}/subir-borrador con el mp4 como cuerpo (Content-Type: video/mp4)
+// → lo envía a los borradores de TikTok sin depender de hosts externos.
+
+app.post(
+  `${prefix}/subir-borrador`,
+  express.raw({ type: ["video/mp4", "application/octet-stream"], limit: "80mb" }),
+  async (req, res) => {
+    try {
+      if (!req.body || !req.body.length) throw new Error("Cuerpo vacío: envía el mp4 como body");
+      res.json(await uploadDraftBuffer(req.body));
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
 
 // ── OAuth de TikTok ──────────────────────────────────────────────────────────
 
