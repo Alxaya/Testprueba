@@ -191,6 +191,15 @@ export async function uploadDraft({ videoUrl }) {
   const vres = await fetch(videoUrl);
   if (!vres.ok) throw new Error(`No pude descargar el video (${vres.status}): ${videoUrl}`);
   const buf = Buffer.from(await vres.arrayBuffer());
+  const tipo = vres.headers.get("content-type") || "";
+  if (tipo.includes("text/html")) {
+    throw new Error("La URL devuelve una página web, no un mp4 — usa un enlace directo al archivo");
+  }
+  return uploadDraftBuffer(buf);
+}
+
+// Igual que uploadDraft pero recibiendo los bytes del video directamente.
+export async function uploadDraftBuffer(buf) {
   const size = buf.length;
   if (size > 64 * 1024 * 1024) throw new Error("Video de más de 64 MB: trocéalo o comprímelo");
 
