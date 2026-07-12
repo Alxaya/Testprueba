@@ -136,6 +136,27 @@ export function buildServer() {
   );
 
   server.registerTool(
+    "tiktok_upload_draft",
+    {
+      title: "Subir video a borradores",
+      description:
+        "Sube un video (desde una URL pública de mp4) a los BORRADORES de la cuenta de TikTok. " +
+        "El usuario completa la publicación desde la app (caption + publicar). " +
+        "Funciona en sandbox con el scope video.upload, sin auditoría.",
+      inputSchema: {
+        video_url: z.string().url().describe("URL pública y directa del archivo .mp4 (máx. 64 MB)"),
+      },
+    },
+    async ({ video_url }) => {
+      try {
+        return json(await tiktok.uploadDraft({ videoUrl: video_url }));
+      } catch (e) {
+        return fail(e);
+      }
+    }
+  );
+
+  server.registerTool(
     "tiktok_post_status",
     {
       title: "Estado de una publicación",
