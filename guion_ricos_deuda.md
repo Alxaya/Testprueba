@@ -1,10 +1,3 @@
-# GUION: «Por qué los ricos piden dinero prestado y los pobres no pueden»
-# ~1.200 palabras · 8 minutos · Listo para ElevenLabs / Google AI Studio
-
----
-
-## 1. HOOK
-
 El banco te presta dinero dependiendo de cuánto dinero ya tienes.
 
 Eso no es un error. Es exactamente cómo fue diseñado el sistema.
@@ -13,21 +6,11 @@ Y hay algo más. Las personas más ricas del mundo pagan impuestos sobre casi na
 
 Hoy vas a entender por qué la deuda es la herramienta más poderosa del mundo. Y por qué fue construida para que solo algunos puedan usarla.
 
----
-
-## 2. CONTEXTO
-
 Piensa en la última vez que necesitaste dinero. Quizás para pagar una deuda, para montar algo, o para llegar a fin de mes. Fuiste al banco. Te pidieron nómina, historial crediticio, garantías. Y si no tenías suficiente de todo eso, te dijeron que no.
 
 Ahora piensa en Elon Musk en 2022. Necesitaba 44.000 millones de dólares para comprar Twitter. No vendió sus empresas. No usó sus ahorros. Pidió prestado. Y se lo dieron en semanas.
 
 Eso no es suerte. Es una mecánica del sistema financiero que pocos entienden. Y que hoy vas a entender completamente.
-
----
-
-## 3. DESARROLLO
-
-### Bloque 1 — Cómo decide el banco a quién le presta
 
 Para entender por qué los ricos siempre consiguen crédito, primero tienes que saber cómo funciona realmente un banco.
 
@@ -45,10 +28,6 @@ Sigues siendo dueño de todo. Y además tienes el efectivo.
 
 Pero lo que nadie te explica es lo que pasa después de conseguir ese préstamo.
 
----
-
-### Bloque 2 — El dinero que nunca tributa
-
 Cuando vendes una acción que ha subido de valor, pagas impuestos sobre esa ganancia. En muchos países eso supone entre el 19% y el 26% de lo que ganaste.
 
 Pero si en lugar de vender la acción la usas como garantía para pedir un préstamo, no pagas nada. Porque técnicamente no has ganado nada. Solo has pedido prestado.
@@ -61,10 +40,6 @@ Elon Musk, Larry Ellison, Jeff Bezos. Todos han usado versiones de esta estrateg
 
 Pero lo que nadie esperaba es que este principio no es exclusivo de los multimillonarios.
 
----
-
-### Bloque 3 — La diferencia entre deuda buena y deuda mala
-
 Hay dos tipos de deuda. Y cuál uses determina si el dinero prestado te hace más rico o más pobre.
 
 La deuda mala es la que usa la mayoría. Pides dinero para comprar algo que pierde valor: un coche, unas vacaciones, tecnología. Cada mes pagas intereses. El objeto se deprecia. Al final del préstamo has pagado más de lo que valía la cosa cuando la compraste.
@@ -75,13 +50,9 @@ Eso es exactamente lo que hacen los ricos. No trabajan para pagar deudas. Usan d
 
 Warren Buffett entendió esto mejor que nadie. Durante décadas usó el dinero de las primas de sus compañías de seguros para invertir en bolsa. Ese dinero no era suyo. Técnicamente lo debía devolver si sus clientes reclamaban. Pero mientras tanto lo invertía y generaba retornos extraordinarios.
 
-Lo que acabas de leer es la base de una de las mayores fortunas de la historia.
+Lo que acabas de escuchar es la base de una de las mayores fortunas de la historia.
 
 Pero lo que nadie esperaba es que este mismo sistema tiene una trampa que casi nadie ve.
-
----
-
-### Bloque 4 — Por qué el crédito crea más desigualdad
 
 Hay un dato que lo explica todo.
 
@@ -97,19 +68,11 @@ El sistema financiero no es neutral. Premia a quien ya tiene y castiga a quien e
 
 Pero lo que nadie esperaba es el dato que más incomoda de todo esto.
 
----
-
-## 4. DATO FINAL
-
 En 2021, una investigación de ProPublica reveló los datos fiscales de los veinticinco americanos más ricos. Ese grupo acumuló en conjunto 401.000 millones de dólares de riqueza en cinco años. Y pagó en impuestos federales apenas 13.600 millones. Una tasa efectiva del tres coma cuatro por ciento.
 
-Para que te hagas una idea de lo que eso significa: un trabajador con salario medio en Estados Unidos paga una tasa efectiva de entre el trece y el veintidós por ciento.
+Para que te hagas una idea: un trabajador con salario medio en Estados Unidos paga una tasa efectiva de entre el trece y el veintidós por ciento.
 
 Es decir, una persona con salario medio paga proporcionalmente entre cuatro y seis veces más impuestos que las personas más ricas del planeta. No porque los ricos hagan algo ilegal. Sino porque el sistema fue construido con herramientas que solo funcionan cuando ya tienes suficiente dinero para usarlas.
-
----
-
-## 5. CIERRE + CTA
 
 El dinero prestado no es bueno ni malo. Es una herramienta. Y como todas las herramientas, lo que importa es quién puede acceder a ella y para qué la usa.
 
