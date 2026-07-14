@@ -6,114 +6,129 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 output_dir = '/home/user/Testprueba/imagenes'
 os.makedirs(output_dir, exist_ok=True)
 
-S = "simple hand-drawn stick figure cartoon, white background, thick black outlines, flat colors, amateur MS Paint doodle style, 16:9 horizontal, minimal detail, no shading, wobbly lines, "
-
-images = [
-    ("001_0-00", S + "bank building center, rich stickman with top hat left receives big money bag with green checkmark, poor stickman right gets red X rejected, simple arrows pointing"),
-    ("002_0-05", S + "large bank building with dollar sign above entrance, stickman walking toward it from far away, money symbols floating around building"),
-    ("003_0-10", S + "rich stickman with top hat and crown smiling wide, tiny tax paper with tiny number next to him, many dollar bags stacked around him, happy expression"),
-    ("004_0-15", S + "giant wrench labeled DEUDA in bold block letters, stickman raising it above head triumphantly, power lightning bolts around it"),
-    ("005_0-20", S + "blueprint paper on table showing bank system diagram, arrows pointing to rich stickman getting more money, design labeled EL SISTEMA"),
-    ("006_0-25", S + "rich stickman with speech bubble PEDIR PRESTADO instead of PAGAR IMPUESTOS, tax collector stickman standing confused with empty hands"),
-    ("007_0-30", S + "stickman looking at giant machine with gears labeled SISTEMA, question marks above head, machine only gives coins to rich stickman on other side"),
-    ("008_0-35", S + "stickman sitting at kitchen table with empty wallet, thought bubble showing dollar sign with question mark, worried expression"),
-    ("009_0-40", S + "stickman walking on path toward bank building in distance, determined face, small house behind him, simple road ahead"),
-    ("010_0-45", S + "bank teller stickman behind glass counter pointing to three stacked documents labeled NOMINA, HISTORIAL, GARANTIAS, stern face"),
-    ("011_0-50", S + "bank door with giant red X and NO APROBADO sign, sad stickman walking away with empty hands, rejection stamp effect"),
-    ("012_0-55", S + "stickman labeled ELON with wild spiky hair, confident wide smile, surrounded by small company logos, standing tall"),
-    ("013_1-00", S + "Twitter bird logo large in center, giant text 44000 MILLONES written in hand lettering below, money bags stacked beside it"),
-    ("014_1-05", S + "Elon stickman walking into bank, bank manager stickman bowing and presenting oversized money bag, big green checkmark above"),
-    ("015_1-10", S + "calendar with pages flipping fast, SEMANAS label, checkmark appearing quickly, approval stamp landing, speed lines"),
-    ("016_1-15", S + "bank building with two giant eyes and magnifying glass examining small stickman standing outside, inspector vibes"),
-    ("017_1-20", S + "two columns on paper: left RESPUESTA OFICIAL with handshake icon, right RESPUESTA REAL with bank grabbing stickman assets, arrow pointing to real answer"),
-    ("018_1-25", S + "bank teller stickman asking QUE TIENES QUE PERDER question bubble, regular stickman looking nervous and sweating"),
-    ("019_1-30", S + "house with COLATERAL label, car with COLATERAL label, stock papers with COLATERAL label, three objects shown clearly"),
-    ("020_1-35", S + "office worker stickman holding tiny paycheck labeled NOMINA, paycheck visually very small compared to background bank building"),
-    ("021_1-40", S + "tiny paycheck connecting with thin arrow to tiny money bag, POCO label, salaried stickman looking disappointed"),
-    ("022_1-45", S + "rich stickman surrounded by tall building, car, stack of stock certificates, all with ACTIVOS label floating above each one"),
-    ("023_1-50", S + "large pile of assets on scale left side going down heavy, large money bag on right side coming out of bank, arrow connecting them"),
-    ("024_1-55", S + "stickman holding house in one raised hand AND cash bag in other raised hand, big smile, SIGUE SIENDO DUENO label below"),
-    ("025_2-00", S + "stickman with arms raised holding property deed on left, bank giving cash on right, MANTIENE TODO text floating above"),
-    ("026_2-05", S + "glowing question mark floating, exclamation point next to it, stickman pointing at mysterious door labeled QUE PASA DESPUES"),
-    ("027_2-10", S + "curtain being pulled back revealing secret mechanism, stickman peeking with wide eyes, spotlight on hidden truth"),
-    ("028_2-15", S + "stock chart with line going up steeply, upward arrow, stock certificate paper, green color accent, value growing"),
-    ("029_2-20", S + "stickman selling stock certificate, large 26 PORCIENTO chunk flying toward tax collector stickman in uniform, sad seller face"),
-    ("030_2-25", S + "tax collector stickman holding big bag labeled 26 PORCIENTO, regular stickman left holding only small bag labeled 74 PORCIENTO, unhappy"),
-    ("031_2-30", S + "stickman handing stock paper to bank labeled as GARANTIA, dotted arrow showing pledge relationship, not selling"),
-    ("032_2-35", S + "bank receiving stock as guarantee, handing back cash bag, big 0 IMPUESTOS symbol with circle around it, happy stickman"),
-    ("033_2-40", S + "giant 0 PORCIENTO with checkmark, stickman celebrating, TECNICAMENTE NO HAS GANADO NADA text in small hand lettering"),
-    ("034_2-45", S + "panel 1 of 3 labeled COMPRAR, stickman buying house and stock with dollar arrow going in, simple box frame"),
-    ("035_2-50", S + "panel 2 of 3 labeled PEDIR PRESTADO, stickman getting money from bank using house as collateral, arrows showing flow"),
-    ("036_2-55", S + "panel 3 of 3 labeled MORIR, simple gravestone RIP, two heir stickmen receiving property deed and money bag with upward arrow"),
-    ("037_3-00", S + "three panels side by side BUY BORROW DIE sequence showing complete strategy, small labels under each panel, connected by arrows"),
-    ("038_3-05", S + "stickman with spiky hair labeled ELON standing on big money pile, arms crossed confidently, Twitter bird nearby"),
-    ("039_3-10", S + "stickman labeled LARRY standing next to Elon stickman, both smiling on money piles, sunglasses"),
-    ("040_3-15", S + "stickman labeled JEFF with round glasses standing with other two billionaire stickmen, three figures in a row on money"),
-    ("041_3-20", S + "sign reading NO ES ILEGAL with checkmark, three billionaire stickmen pointing to it, green LEGAL stamp"),
-    ("042_3-25", S + "fork in road, left path going downhill labeled DEUDA MALA with red color, right path going uphill labeled DEUDA BUENA with green color"),
-    ("043_3-30", S + "stickman buying old car, car with downward arrow showing depreciation, money flying out labeled PIERDE VALOR"),
-    ("044_3-35", S + "car shrinking in value with downward arrow, INTERESES bills flying away from stickman wallet each month"),
-    ("045_3-40", S + "stickman on beach vacation and stickman with phone, both have downward arrows and money pouring out labeled GASTO"),
-    ("046_3-45", S + "stickman drowning in sea made of bills labeled INTERESES, arms flailing, struggling expression, debt waves"),
-    ("047_3-50", S + "stickman getting loan with small arrow labeled 6 PORCIENTO going in, money entering investment box with growth symbol"),
-    ("048_3-55", S + "investment box with upward arrow labeled 15 PORCIENTO coming out, bigger money bag emerging, growth chart"),
-    ("049_4-00", S + "simple math diagram: 6 PORCIENTO in with arrow, 15 PORCIENTO out with arrow, green circle highlighting 9 PORCIENTO GANANCIA"),
-    ("050_4-05", S + "coins with tiny legs running and working hard, DINERO TRABAJANDO label, happy stickman watching from chair relaxing"),
-    ("051_4-10", S + "rich stickman relaxing in hammock while debt arrow labeled DEUDA does heavy lifting work, money multiplying itself"),
-    ("052_4-15", S + "old stickman with glasses and bow tie labeled WARREN, wise smile, wrinkles, finger raised knowingly"),
-    ("053_4-20", S + "insurance company building with customers lined up paying premiums at counter, SEGUROS label on building sign"),
-    ("054_4-25", S + "arrows showing flow: customers give PRIMAS to company building, money accumulating inside"),
-    ("055_4-30", S + "arrow from insurance company box going into stock market chart with bars growing, investment flow diagram"),
-    ("056_4-35", S + "stock market bars growing taller, money bag doubling then tripling with x2 x3 labels, returns multiplying"),
-    ("057_4-40", S + "ESE DINERO NO ERA SUYO label with big red arrow pointing to float money, stickman using it anyway with smirk"),
-    ("058_4-45", S + "fortune building with foundation labeled DINERO DE OTROS, floors stacking up representing wealth built on borrowed money"),
-    ("059_4-50", S + "yellow warning sign with TRAMPA label, magnifying glass, suspicious eyes peering around corner, hidden trap below"),
-    ("060_4-55", S + "spotlight shining on one data point on chart, magnifying glass hovering over bar chart, UN DATO LO EXPLICA TODO text"),
-    ("061_5-00", S + "row of rich stickmen with top hats, bank official giving them tiny interest label 2 A 4 PORCIENTO, all smiling"),
-    ("062_5-05", S + "row of poor stickmen, giant 400 PORCIENTO number crushing them from above, staggering under weight"),
-    ("063_5-10", S + "side by side comparison: rich stickman with tiny 3 PORCIENTO label, poor stickman crushed by giant 400 PORCIENTO number"),
-    ("064_5-15", S + "scale balance: rich stickman side floats up easily labeled BARATO, poor stickman side crashes down labeled CARO"),
-    ("065_5-20", S + "one small coin on left, mountain of 100 coins on right, label 100 VECES MAS CARO, arrow showing comparison"),
-    ("066_5-25", S + "blueprint design table with THIS WAS PLANNED label, architect stickman designing unfair system intentionally, ruler and compass"),
-    ("067_5-30", S + "chain of connected boxes: NO GARANTIA leads to MAS RIESGO leads to MAS INTERES leads to TRAMPA, arrows connecting all"),
-    ("068_5-35", S + "domino effect: NO COLATERAL domino pushes RIESGO ALTO domino pushes INTERES ALTO domino, falling in sequence"),
-    ("069_5-40", S + "stickman under 25 PORCIENTO label as heavy weight on shoulders, used car beside him, calendar showing months of work"),
-    ("070_5-45", S + "calendar with many weeks checked off, stickman working each one labeled SOLO PARA PAGAR INTERESES, exhausted face"),
-    ("071_5-50", S + "stickman with small 3 PORCIENTO feather-light label, property with green upward arrow, growing richer label"),
-    ("072_5-55", S + "house with value arrow going up each year, coins piling up beside stickman automatically, calendar showing years passing"),
-    ("073_6-00", S + "large scale dramatically tilted, rich stickman side way up high with SISTEMA label, poor stickman side way down low"),
-    ("074_6-05", S + "NO NEUTRAL stamp on broken balance scale, system tilted label, stickman looking at unfairness"),
-    ("075_6-10", S + "two stickmen: left one with money getting larger crown each step, right one starting from zero getting nothing, arrows showing contrast"),
-    ("076_6-15", S + "ProPublica newspaper front page with magnifying glass highlighting it, INVESTIGACION 2021 label, document style"),
-    ("077_6-20", S + "25 stick figures standing in row with top hats, all labeled LOS 25 MAS RICOS, numbered 1 through 25"),
-    ("078_6-25", S + "giant number 401000 MILLONES in large text center, five year calendar, stacks of money in background, 5 ANOS label"),
-    ("079_6-30", S + "small number 13600 next to tiny percentage 3.4 PORCIENTO, huge gap shown between wealth and taxes paid, arrow contrast"),
-    ("080_6-35", S + "average worker stickman with tie under large 22 PORCIENTO label, comparison next to tiny rich person 3.4 PORCIENTO label"),
-    ("081_6-40", S + "simple bar chart: very short bar RICOS 3.4 PORCIENTO, very tall bar TRABAJADOR 22 PORCIENTO, clear visual gap"),
-    ("082_6-45", S + "arrow labeled 6 VECES MAS spanning gap between poor worker and rich person tax bars, unfair difference highlighted"),
-    ("083_6-50", S + "LEGAL stamp green, NO ILEGAL text, but tilted scale beside it showing legal does not mean fair"),
-    ("084_6-55", S + "toolbox locked with wealth key, regular stickman cannot reach key on high shelf, rich stickman easily takes it"),
-    ("085_7-00", S + "velvet rope separating financial tools on left, regular stickman outside looking in, rich stickman inside using all tools"),
-    ("086_7-05", S + "wrench and hammer labeled DEUDA NI BUENA NI MALA, neutral tool in center, no good or bad signs, just a tool"),
-    ("087_7-10", S + "same hammer tool shown twice: rich stickman using it to build money tower, poor stickman using it as bandage patch"),
-    ("088_7-15", S + "rich stickman holding debt tool multiplying money x10, speech bubble NO ME FALTA DINERO, YO LO MULTIPLICO"),
-    ("089_7-20", S + "regular stickman watching rich stickman borrow and multiply, understanding lightbulb appearing above head, AHA moment"),
-    ("090_7-25", S + "stickman with new understanding, see-through view of system mechanism that was previously hidden, gears now visible"),
-    ("091_7-30", S + "Y TU question in large letters, fork sign with two arrows: HERRAMIENTA going up, PARCHE going down, stickman choosing"),
-    ("092_7-35", S + "comment section rectangle with cursor blinking, stickman typing response, speech bubble with question mark"),
-    ("093_7-40", S + "giant thumbs up LIKE button in center, excited stickman on both sides pointing at it with both hands, DALE LIKE text"),
-    ("094_7-45", S + "subscribe bell notification button large in center, stickman finger pressing it, SUSCRIBETE text, ding effect lines"),
-    ("095_7-50", S + "channel notification bell ringing with sound waves, stickman jumping for joy with checkmark above head, subscribe confirmed"),
-    ("096_7-55", S + "stickman waving both arms goodbye, NOS VEMOS EN EL SIGUIENTE text in hand lettering below, smile, simple ending"),
-]
-
 PROXY = os.environ.get("HTTPS_PROXY", "")
 CA = "/root/.ccr/ca-bundle.crt"
+
+# Style: clean stick figure, simple line hands, text only when essential
+S = ("simple stick figure doodle, white background, thick black outlines, "
+     "flat colors, amateur MS Paint style, 16:9 horizontal, "
+     "circle head with dot eyes and curved mouth, stick arms with tiny simple hands, "
+     "stick legs, minimal detail, no shading, no realistic anatomy, "
+     "hands as simple small lines or circles only never realistic, ")
+
+images = [
+    # --- HOOK: el banco discrimina ---
+    ("001_0-00", S + "bank building center with BANCO written above door, rich stick figure with top hat on left getting money bag green checkmark above, poor stick figure on right rejected with red X above"),
+    ("002_0-05", S + "large rectangular bank building center, dollar sign above door, small stick figure approaching from right side, simple road"),
+    ("003_0-10", S + "rich stick figure with top hat smiling, crown above head, three money bags stacked beside him, simple white background"),
+    ("004_0-15", S + "giant wrench shape center, stick figure raising arms beside it, lightning bolt shapes around wrench, power symbol"),
+    ("005_0-20", S + "large paper with grid lines on it, stick figure on right side of paper with top hat getting arrow pointing to him, another stick figure on left getting nothing"),
+    ("006_0-25", S + "stick figure with top hat, thought bubble above showing money bag, tax paper with tiny dot number crossed out, happy face"),
+    ("007_0-30", S + "large gear machine shape center, rich stick figure on right side receiving coins, poor stick figure on left receiving nothing, question mark above machine"),
+    # --- CONTEXTO: ir al banco y ser rechazado ---
+    ("008_0-35", S + "stick figure sitting at table, empty wallet shape open on table, question mark floating above head, worried expression curved line mouth"),
+    ("009_0-40", S + "stick figure walking on simple path toward bank building in far distance, simple ground line, determined straight mouth"),
+    ("010_0-45", S + "bank teller stick figure behind tall counter pointing at three documents labeled NOMINA HISTORIAL GARANTIAS stacked on counter, visitor stick figure on other side"),
+    ("011_0-50", S + "bank building with large red X on door and NO sign, stick figure walking away sad with drooping arms, dejected expression"),
+    ("012_0-55", S + "tall confident stick figure center, wild spiky lines on head, arms raised slightly outward, big smile, simple white background"),
+    ("013_1-00", S + "large bird shape outline center, giant oval money bag shape below it, many small circle coins scattered around, simple background"),
+    ("014_1-05", S + "stick figure with spiky hair walking into building door, bank teller stick figure inside bowing forward, large money bag on counter between them"),
+    ("015_1-10", S + "three calendar squares in a row showing days passing, checkmark in last square, speed lines beside calendars, simple sequence"),
+    # --- COMO FUNCIONA EL BANCO ---
+    ("016_1-15", S + "bank building with two large oval eyes drawn on it, magnifying circle shape in front of building, small stick figure standing below being examined"),
+    ("017_1-20", S + "vertical line dividing paper into two halves, handshake shapes on left half, bank building grabbing object shape on right half, question mark over right side"),
+    ("018_1-25", S + "bank teller stick figure behind counter leaning forward with large oval question mark floating between teller and visitor stick figure, visitor sweating drops"),
+    ("019_1-30", S + "house shape labeled COLATERAL on left, car shape labeled COLATERAL center, stack of papers labeled COLATERAL on right, three objects with arrows"),
+    ("020_1-35", S + "office worker stick figure with tie, small rectangular paycheck shape held in one arm, bank building far right looking large in comparison, sad expression"),
+    ("021_1-40", S + "thin arrow from tiny paycheck rectangle to tiny money bag, small stick figure beside it looking disappointed, everything small scale"),
+    ("022_1-45", S + "rich stick figure center with top hat, large house shape on left, tall building shape on right, stack of paper rectangles below, all surrounding stick figure"),
+    ("023_1-50", S + "left side scale pan heavy with house shape and building shapes going down, right side bank gives out large money bag going up, balance beam tilted, simple scale"),
+    ("024_1-55", S + "stick figure center with arms raised, house shape floating above left arm, money bag shape floating above right arm, big smile, both things at once"),
+    ("025_2-00", S + "stick figure holding rectangular deed paper in one arm and round money bag in other arm, arrows pointing to both objects, happy expression"),
+    ("026_2-05", S + "large glowing oval question mark center, exclamation mark beside it, stick figure pointing at question mark with simple line arm"),
+    ("027_2-10", S + "large curtain shape on left being pulled aside, spotlight circle on right revealing hidden gears, stick figure peeking around curtain edge"),
+    # --- ESTRATEGIA FISCAL: BUY BORROW DIE ---
+    ("028_2-15", S + "upward diagonal arrow, stock certificate rectangle at bottom left, money bag at top right of arrow, green color on arrow, growth visual"),
+    ("029_2-20", S + "stick figure selling paper to right, large chunk shape splitting off going toward tax collector stick figure in uniform hat, seller stick figure sad mouth"),
+    ("030_2-25", S + "tax collector stick figure holding large round bag on left, regular stick figure holding small round bag on right, size difference visible, unhappy expression"),
+    ("031_2-30", S + "stock paper rectangle with dotted arrow going to bank building, not straight sale, curved dotted line showing pledge not selling"),
+    ("032_2-35", S + "bank building handing money bag to stick figure, stock paper beside bank, large zero circle with line through it above transaction, happy stick figure"),
+    ("033_2-40", S + "large zero numeral center with checkmark beside it, stick figure arms raised celebrating below, simple white background"),
+    ("034_2-45", S + "square frame box on left labeled 1, stick figure inside pointing at house shape and stock paper, simple panel style"),
+    ("035_2-50", S + "square frame box center labeled 2, stick figure receiving money bag from bank building, house shape connected to bank with dotted arrow"),
+    ("036_2-55", S + "square frame box on right labeled 3, tombstone shape with cross, two smaller stick figures beside it receiving money bags and house shape from above arrow"),
+    ("037_3-00", S + "three boxes in a row with arrows between them, first box labeled COMPRAR with house, second box labeled PEDIR PRESTADO with money bag, third box labeled MORIR with tombstone and heirs"),
+    # --- MUSK ELLISON BEZOS ---
+    ("038_3-05", S + "tall stick figure with spiky hair standing on stack of money bags, arms crossed, confident straight posture, bird shape outline floating nearby"),
+    ("039_3-10", S + "stick figure with sunglasses standing on money bag stack, arms at sides proudly, simple sunglasses two oval shapes on face"),
+    ("040_3-15", S + "stick figure with round glasses on face standing beside two other stick figures, all three on money bag stacks, row of three figures"),
+    ("041_3-20", S + "large rectangular sign shape center, three stick figures pointing at it from both sides, green checkmark on sign, simple approval visual"),
+    # --- DOS TIPOS DE DEUDA ---
+    ("042_3-25", S + "Y fork in road, left downhill path labeled DEUDA MALA with red arrow, right uphill path labeled DEUDA BUENA with green arrow, stick figure at bottom choosing"),
+    ("043_3-30", S + "stick figure walking away from car rectangle shape, car with downward arrow below it, small coins flying away from stick figure wallet shape"),
+    ("044_3-35", S + "car rectangle shrinking in size with downward arrow, money coins flying away in stream from wallet, month calendar squares passing"),
+    ("045_3-40", S + "stick figure on beach with umbrella shape, stick figure holding phone rectangle, both with downward arrows and money stream flowing away"),
+    ("046_3-45", S + "stick figure waist deep in pile of bill rectangles, arms raised trying to stay above bills, overwhelmed expression open mouth"),
+    ("047_3-50", S + "thin arrow going into investment box rectangle labeled with small percent symbol, money entering box, growth lines on box"),
+    ("048_3-55", S + "investment rectangle box with upward arrow coming out, larger money bag emerging from top, taller than input arrow, growth visual"),
+    ("049_4-00", S + "simple math flow: small arrow in on left, larger arrow out on right, small circle highlighting difference gap between the two arrows, green accent on gap"),
+    ("050_4-05", S + "several coin circles with stick legs running fast, speed lines behind them, stick figure in chair watching them run, relaxed posture"),
+    ("051_4-10", S + "stick figure in hammock between two posts, small arrow shape pulling money bag toward money pile by itself, stick figure not working, relaxed"),
+    # --- WARREN BUFFETT ---
+    ("052_4-15", S + "old stick figure with glasses oval shapes on face, bow tie triangle at neck, one line arm raised with index finger pointing up, wise expression"),
+    ("053_4-20", S + "rectangular building with windows, row of stick figures outside it forming queue line, coins going in through door, insurance building visual"),
+    ("054_4-25", S + "multiple stick figures with arrows from them all flowing into large rectangular box, coins accumulating inside box, funnel effect"),
+    ("055_4-30", S + "rectangular box on left with arrow leading to stock market bar chart on right, bars growing taller, investment flow"),
+    ("056_4-35", S + "bar chart bars doubling in height, money bag getting bigger with multiplication symbol beside it, upward trend, growth visual"),
+    ("057_4-40", S + "large money pile with dashed border around it, arrow pointing away from pile, stick figure using it freely, dotted line showing it belongs elsewhere"),
+    ("058_4-45", S + "building shape with floors stacking upward, bottom floor labeled with dashed lines showing borrowed foundation, upper floors solid, wealth tower"),
+    ("059_4-50", S + "yellow triangle warning shape center, magnifying circle hovering over it, small hidden trap door shape below triangle, suspicious eye shapes"),
+    # --- DESIGUALDAD DE CREDITO ---
+    ("060_4-55", S + "spotlight circle on single bar in bar chart, magnifying circle hovering, other bars in shadow, one highlighted data point"),
+    ("061_5-00", S + "row of rich stick figures with top hats, small percent symbol bubble above them, bank giving them coins easily, smiling expressions"),
+    ("062_5-05", S + "row of poor stick figures, giant heavy weight block shape pressing down on them from above, struggling curved expressions, weight labeled with large percent symbol"),
+    ("063_5-10", S + "two stick figures side by side, left rich figure with tiny bubble above, right poor figure with enormous bubble crushing from above, extreme size difference"),
+    ("064_5-15", S + "balance scale, rich stick figure on high left pan floating up light, poor stick figure on low right pan pressed down heavy, tilted beam"),
+    ("065_5-20", S + "single small coin circle on left, mountain pile of 100 coin circles on right, long comparison arrow between them pointing right"),
+    ("066_5-25", S + "stick figure architect at drawing table with blueprint paper, ruler shape, designing system with arrows pointing to rich figure only"),
+    ("067_5-30", S + "four boxes in horizontal chain connected by arrows: empty box, risk box with exclamation, percent box, trap door box at end, domino chain"),
+    ("068_5-35", S + "three domino rectangles in falling sequence, first falling onto second falling onto third, each domino labeled with different symbol"),
+    ("069_5-40", S + "stick figure carrying enormous heavy block on back, car rectangle beside figure, calendar squares showing many months, bent posture from weight"),
+    ("070_5-45", S + "calendar grid with many squares filled in with check marks, stick figure working at each square, exhausted drooping arms, many months passing"),
+    ("071_5-50", S + "stick figure with small feather floating above head instead of heavy block, house shape beside figure with upward arrow, light posture upright"),
+    ("072_5-55", S + "house shape with upward arrow each year, coin pile growing beside house, simple calendar with arrow showing years passing, automatic growth"),
+    ("073_6-00", S + "large balance scale, left pan with rich stick figure and top hat rising high up, right pan with poor stick figure dropping down low, extreme tilt"),
+    ("074_6-05", S + "balance scale with red X across beam, scale frozen in tilted position, stick figure looking at broken scale with arms out questioning"),
+    ("075_6-10", S + "two stick figures walking paths, left path going up with coins appearing, right path flat with nothing, diverging paths from same start point"),
+    # --- PROPUBLICA DATA ---
+    ("076_6-15", S + "large rectangle newspaper shape center, magnifying circle in corner, bold lines suggesting headline text areas, document investigative visual"),
+    ("077_6-20", S + "row of 25 small stick figures all wearing top hat shapes, standing in neat line, all identical rich figures, large group visual"),
+    ("078_6-25", S + "enormous number shape outline center suggesting huge amount, calendar showing five year span, money bag pile in background, large quantity visual"),
+    ("079_6-30", S + "two groups: large pile of coins on left labeled with big number, tiny pile of coins on right labeled with small number, drastic size difference"),
+    ("080_6-35", S + "worker stick figure with tie, large percent block above worker, small percent symbol above rich figure beside him, huge gap visible"),
+    ("081_6-40", S + "bar chart with two bars, short bar on left labeled RICOS 3.4% and tall bar on right labeled TRABAJADOR 22%, two stick figures standing below each bar"),
+    ("082_6-45", S + "long arrow spanning gap between short bar and tall bar, six small equal segments marked along arrow showing multiplier, gap measurement visual"),
+    ("083_6-50", S + "green checkmark stamp shape, legal document rectangle, balance scale beside it still tilted, legal but unfair visual contrast"),
+    ("084_6-55", S + "locked toolbox shape on high shelf, key shape beside toolbox, rich stick figure easily reaching shelf, poor stick figure reaching up unable to reach"),
+    ("085_7-00", S + "velvet rope curved line separating left and right, financial tool shapes on left side, rich stick figure inside using them, poor stick figure outside looking in"),
+    # --- CONCLUSION ---
+    ("086_7-05", S + "single wrench shape center, no labels on it, neutral position, equal space on both sides, neither good nor bad, balanced composition"),
+    ("087_7-10", S + "same wrench shape shown twice, rich stick figure on left using it to stack coins upward, poor stick figure on right using it as bandage patch shape"),
+    ("088_7-15", S + "rich stick figure with wrench multiplying coins, stack growing upward with multiplication arrows, satisfied expression"),
+    ("089_7-20", S + "regular stick figure with light bulb shape above head, gears becoming visible as transparent outlines in background, understanding moment"),
+    ("090_7-25", S + "stick figure looking through magnifying circle at system gears now visible, previously hidden gears now shown clearly, discovery visual"),
+    ("091_7-30", S + "large Y fork shape, stick figure at base, upward arrow on right path, downward arrow on left path, choice moment, question mark above figure"),
+    ("092_7-35", S + "rectangle comment box shape with cursor blink line inside, stick figure beside it with thinking bubble, typing gesture arm position"),
+    ("093_7-40", S + "large rounded rectangle thumbs up shape center, two stick figures on either side both pointing at it, excited raised arm posture"),
+    ("094_7-45", S + "large bell shape center with notification dot on top, stick figure beside it pressing bell with one arm, notification rings radiating outward"),
+    ("095_7-50", S + "bell shape with checkmark inside, stick figure jumping with arms raised in celebration, simple joy posture"),
+    ("096_7-55", S + "single stick figure center waving both arms upward in goodbye gesture, big smile, simple white background, no extra text, clean ending frame"),
+]
 
 def download_image(idx_name, prompt):
     encoded = urllib.parse.quote(prompt)
     seed = abs(hash(idx_name)) % 9999
-    url = f"https://image.pollinations.ai/prompt/{encoded}?width=1280&height=720&nologo=true&seed={seed}"
+    url = f"https://image.pollinations.ai/prompt/{encoded}?width=1280&height=720&nologo=true&seed={seed}&model=flux"
     output = f"{output_dir}/{idx_name}.jpg"
     try:
         result = subprocess.run(
@@ -130,7 +145,7 @@ def download_image(idx_name, prompt):
         print(f"FAIL: {idx_name} - {e}")
         return idx_name, False
 
-print(f"Generando {len(images)} imagenes...")
+print(f"Regenerando {len(images)} imagenes con prompts mejorados...")
 with ThreadPoolExecutor(max_workers=5) as executor:
     futures = {executor.submit(download_image, name, prompt): name for name, prompt in images}
     done = 0
