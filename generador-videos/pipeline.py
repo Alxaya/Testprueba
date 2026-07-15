@@ -358,6 +358,9 @@ def cmd_montar(args):
             f"[{i}:v]trim=duration={dur:.3f},setpts=PTS-STARTPTS,"
             f"scale={ANCHO}:{ALTO}:force_original_aspect_ratio=increase,"
             f"crop={ANCHO}:{ALTO},fps=30,"
+            # normaliza formato y rango de color: algunos clips de Pexels vienen
+            # en rango completo (JPEG) y rompen el concat con "Invalid color range"
+            f"format=yuv420p,setrange=tv,"
             f"tpad=stop_mode=clone:stop_duration={dur:.3f},"
             f"trim=duration={dur:.3f},setpts=PTS-STARTPTS[v{i}]"
         )
