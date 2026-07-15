@@ -255,20 +255,29 @@ def cmd_visuales(args):
 
     consultas = [c.strip() for c in args.temas.split(",") if c.strip()]
     n = 0
+    vistos = set()  # ids de vídeos de Pexels ya usados, para no repetir clips
     for consulta in consultas:
-        videos = _buscar_pexels(consulta, clave, args.por_tema)
+        # pide más resultados de los necesarios para poder saltar los repetidos
+        videos = _buscar_pexels(consulta, clave, args.por_tema + 6)
         if not videos:
             print(f"⚠️  Sin resultados para '{consulta}'")
             continue
         # prefiere clips de al menos 5s para que no haya que congelar fotogramas
         videos.sort(key=lambda v: v.get("duration", 0) < 5)
-        for video in videos[: args.por_tema]:
+        descargados = 0
+        for video in videos:
+            if descargados >= args.por_tema:
+                break
+            if video["id"] in vistos:  # ya usado en otra búsqueda, sáltalo
+                continue
             # elige el archivo vertical de mayor calidad razonable (~1080 de ancho máx.)
             archivos = [f for f in video["video_files"] if f["width"] <= 1200 and f["height"] > f["width"]]
             if not archivos:
                 continue
             mejor = max(archivos, key=lambda f: f["width"])
+            vistos.add(video["id"])
             n += 1
+            descargados += 1
             destino = CLIPS / f"clip{n:02d}.mp4"
             print(f"Descargando '{consulta}' → {destino.name}")
             with httpx.stream("GET", mejor["link"], timeout=120, follow_redirects=True) as resp:
@@ -276,6 +285,8 @@ def cmd_visuales(args):
                 with open(destino, "wb") as f:
                     for parte in resp.iter_bytes():
                         f.write(parte)
+        if descargados == 0:
+            print(f"⚠️  Sin clips nuevos para '{consulta}' (todos repetidos o sin versión vertical)")
     if n == 0:
         sys.exit("No se descargó ningún clip; prueba otros temas (mejor en inglés: 'city night, typing').")
     print(f"✅ {n} clips en {CLIPS}")
