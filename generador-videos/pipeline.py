@@ -206,6 +206,11 @@ def cmd_voz(args):
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
     _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass", titulo=args.titulo)
+    # guarda los tiempos de cada palabra para poder alinear clips a segmentos
+    (SALIDA / "palabras.json").write_text(
+        json.dumps([[round(i, 3), round(f, 3), w] for i, f, w in palabras], ensure_ascii=False),
+        encoding="utf-8",
+    )
 
     # SIN procesado: la voz va tal cual sale de edge-tts. Cualquier filtro o
     # remuestreo con el ffmpeg de imageio ensucia el audio (silbido a 12 kHz,
@@ -229,7 +234,7 @@ def _buscar_pexels(consulta: str, clave: str, cantidad: int):
 
     r = httpx.get(
         "https://api.pexels.com/videos/search",
-        params={"query": consulta, "orientation": "portrait", "per_page": cantidad, "size": "medium"},
+        params={"query": consulta, "orientation": "portrait", "per_page": max(cantidad, 8), "size": "medium"},
         headers={"Authorization": clave},
         timeout=30,
     )
@@ -306,38 +311,56 @@ def cmd_musica(args):
 def cmd_montar(args):
     voz = SALIDA / "voz.wav"
     subs = SALIDA / "subtitulos.ass"
-    clips = sorted(CLIPS.glob("*.mp4"))
     if not voz.exists() or not subs.exists():
         sys.exit("Faltan salida/voz.wav o salida/subtitulos.ass (ejecuta: python pipeline.py voz)")
-    if not clips:
-        sys.exit("No hay clips en salida/clips (ejecuta: python pipeline.py visuales \"tema1, tema2\")")
 
     dur_total = duracion_audio(voz) + 0.5
-    seg = dur_total / len(clips)
+
+    # Modo alineado: si existe salida/secuencia.json, se respeta el orden y la
+    # duración de cada clip (para que el visual coincida con lo que narra la voz
+    # en ese momento). Formato: [{"clip": "clip01.mp4", "dur": 6.0}, ...]
+    seq = SALIDA / "secuencia.json"
+    if seq.exists():
+        plan = json.loads(seq.read_text())
+        orden = [(CLIPS / p["clip"], float(p["dur"])) for p in plan]
+        # ajusta la última duración para cuadrar exactamente con la voz
+        suma = sum(d for _, d in orden)
+        if orden:
+            orden[-1] = (orden[-1][0], orden[-1][1] + (dur_total - suma))
+    else:
+        clips = sorted(CLIPS.glob("*.mp4"))
+        if not clips:
+            sys.exit("No hay clips en salida/clips (ejecuta: python pipeline.py visuales \"tema1, tema2\")")
+        seg = dur_total / len(clips)
+        orden = [(c, seg) for c in clips]
+
+    for c, _ in orden:
+        if not c.exists():
+            sys.exit(f"Falta el clip {c.name} indicado en la secuencia")
 
     entradas, filtros, etiquetas = [], [], []
-    for i, clip in enumerate(clips):
+    for i, (clip, dur) in enumerate(orden):
         entradas += ["-i", str(clip)]
         # recorta al segmento; si el clip es más corto, clona el último fotograma
         # solo lo que falte (el trim final garantiza duración exacta)
         filtros.append(
-            f"[{i}:v]trim=duration={seg:.3f},setpts=PTS-STARTPTS,"
+            f"[{i}:v]trim=duration={dur:.3f},setpts=PTS-STARTPTS,"
             f"scale={ANCHO}:{ALTO}:force_original_aspect_ratio=increase,"
             f"crop={ANCHO}:{ALTO},fps=30,"
-            f"tpad=stop_mode=clone:stop_duration={seg:.3f},"
-            f"trim=duration={seg:.3f},setpts=PTS-STARTPTS[v{i}]"
+            f"tpad=stop_mode=clone:stop_duration={dur:.3f},"
+            f"trim=duration={dur:.3f},setpts=PTS-STARTPTS[v{i}]"
         )
         etiquetas.append(f"[v{i}]")
 
     filtros.append(
-        "".join(etiquetas) + f"concat=n={len(clips)}:v=1:a=0,"
+        "".join(etiquetas) + f"concat=n={len(orden)}:v=1:a=0,"
         f"trim=duration={dur_total:.3f},"
         f"subtitles='{subs}':fontsdir=/usr/share/fonts[vf]"
     )
 
     # música de fondo solo si se pide explícitamente con --musica
     musica = SALIDA / "musica.wav"
-    n = len(clips)
+    n = len(orden)
     if args.musica and musica.exists():
         entradas += ["-i", str(voz), "-stream_loop", "-1", "-i", str(musica)]
         filtros.append(
