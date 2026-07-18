@@ -237,6 +237,17 @@ def _buscar_pexels(consulta: str, clave: str, cantidad: int):
     return r.json().get("videos", [])
 
 
+def _brillo_medio(ruta: Path) -> float:
+    """Luma media (YAVG 0-255) muestreando el clip; sirve para descartar clips diurnos."""
+    r = subprocess.run(
+        [ffmpeg_exe(), "-i", str(ruta), "-vf", "fps=1,signalstats,metadata=print:key=lavfi.signalstats.YAVG",
+         "-f", "null", "-"],
+        capture_output=True, text=True,
+    )
+    valores = [float(v) for v in re.findall(r"YAVG=([\d.]+)", r.stderr)]
+    return sum(valores) / len(valores) if valores else 255.0
+
+
 def cmd_visuales(args):
     clave = os.environ.get("PEXELS_API_KEY")
     if not clave:
@@ -249,28 +260,41 @@ def cmd_visuales(args):
         viejo.unlink()
 
     consultas = [c.strip() for c in args.temas.split(",") if c.strip()]
+    vistos = set()  # ids de Pexels ya descargados: un mismo clip no puede salir dos veces
     n = 0
     for consulta in consultas:
-        videos = _buscar_pexels(consulta, clave, args.por_tema)
+        videos = _buscar_pexels(consulta, clave, args.por_tema + 3)
         if not videos:
             print(f"⚠️  Sin resultados para '{consulta}'")
             continue
         # prefiere clips de al menos 5s para que no haya que congelar fotogramas
         videos.sort(key=lambda v: v.get("duration", 0) < 5)
-        for video in videos[: args.por_tema]:
+        bajados = 0
+        for video in videos:
+            if bajados >= args.por_tema:
+                break
+            if video["id"] in vistos:
+                continue
             # elige el archivo vertical de mayor calidad razonable (~1080 de ancho máx.)
             archivos = [f for f in video["video_files"] if f["width"] <= 1200 and f["height"] > f["width"]]
             if not archivos:
                 continue
             mejor = max(archivos, key=lambda f: f["width"])
-            n += 1
-            destino = CLIPS / f"clip{n:02d}.mp4"
+            destino = CLIPS / f"clip{n + 1:02d}.mp4"
             print(f"Descargando '{consulta}' → {destino.name}")
             with httpx.stream("GET", mejor["link"], timeout=120, follow_redirects=True) as resp:
                 resp.raise_for_status()
                 with open(destino, "wb") as f:
                     for parte in resp.iter_bytes():
                         f.write(parte)
+            brillo = _brillo_medio(destino)
+            if brillo > args.brillo_max:
+                destino.unlink()
+                print(f"   ✗ descartado por diurno (luma {brillo:.0f} > {args.brillo_max})")
+                continue
+            vistos.add(video["id"])
+            n += 1
+            bajados += 1
     if n == 0:
         sys.exit("No se descargó ningún clip; prueba otros temas (mejor en inglés: 'city night, typing').")
     print(f"✅ {n} clips en {CLIPS}")
@@ -394,6 +418,8 @@ def main():
     vi = sub.add_parser("visuales", help="Descargar clips de stock desde Pexels")
     vi.add_argument("temas", help='Temas separados por coma, ej: "city night, typing on laptop"')
     vi.add_argument("--por-tema", type=int, default=2, help="Clips por tema (defecto: 2)")
+    vi.add_argument("--brillo-max", type=float, default=105,
+                    help="Luma media máxima (0-255); descarta clips diurnos (defecto: 105)")
     vi.set_defaults(fn=cmd_visuales)
 
     m = sub.add_parser("montar", help="Montar el video final 9:16")
