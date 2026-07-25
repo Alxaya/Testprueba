@@ -236,6 +236,7 @@ El panel `/admin/sistema` muestra en todo momento qué está configurado y qué 
 | [`docs/06-automatizaciones.md`](docs/06-automatizaciones.md) | Trabajos programados, emails y blog automático |
 | [`docs/07-analitica.md`](docs/07-analitica.md) | Eventos, embudo y métricas de negocio |
 | [`docs/08-despliegue.md`](docs/08-despliegue.md) | Puesta en producción y lista de comprobación |
+| [`docs/11-desplegar-sin-terminal.md`](docs/11-desplegar-sin-terminal.md) | **Desplegar desde el navegador, sin terminal** (móvil incluido) |
 | [`docs/09-legal.md`](docs/09-legal.md) | Qué falta completar antes de facturar |
 | [`docs/10-operativa.md`](docs/10-operativa.md) | Manual de incidencias y mantenimiento |
 

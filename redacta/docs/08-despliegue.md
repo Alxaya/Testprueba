@@ -2,6 +2,9 @@
 
 ---
 
+> ¿Prefieres hacerlo sin terminal, desde el navegador o el móvil? Sigue
+> [`11-desplegar-sin-terminal.md`](11-desplegar-sin-terminal.md).
+
 ## Opción recomendada: Vercel + PostgreSQL gestionado
 
 Es la vía con menos mantenimiento: los cron ya están declarados en
@@ -36,6 +39,12 @@ Importa el repositorio en Vercel y configura:
 | `ADMIN_EMAILS` | Tu email |
 
 ### 4. Esquema
+
+No hay que hacer nada: el script `vercel-build` ejecuta
+`prisma migrate deploy` antes de compilar, así que cada despliegue aplica las
+migraciones pendientes.
+
+Si despliegas fuera de Vercel, ejecútalo a mano:
 
 ```bash
 DATABASE_URL="postgresql://..." npx prisma migrate deploy
