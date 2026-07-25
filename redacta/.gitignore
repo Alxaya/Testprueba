@@ -1,0 +1,33 @@
+# dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# entorno
+.env
+.env.local
+.env.*.local
+
+# base de datos
+prisma/*.db
+prisma/*.db-journal
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# sistema
+.DS_Store
+Thumbs.db
+.vercel
+coverage/

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/inactivity-nudge",
+      "schedule": "0 9 * * 3"
+    },
+    {
+      "path": "/api/cron/blog-autopilot",
+      "schedule": "0 7 * * 2"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 4 * * 0"
+    }
+  ]
+}

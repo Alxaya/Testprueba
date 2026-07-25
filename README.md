@@ -1,3 +1,17 @@
+# Proyectos del repositorio
+
+| Proyecto | Qué es | Estado |
+| --- | --- | --- |
+| [**`redacta/`**](redacta/) | **SaaS de generación de contenido con IA** para tiendas online y pymes. Web, panel de cliente, panel de administración, suscripciones con Stripe y automatizaciones. Aplicación completa y funcional. | Funcional |
+| [`docs/`](docs/) + [`shopify-store/`](shopify-store/) | Estrategia y materiales para lanzar una tienda de dropshipping en España (ver más abajo). | Documentación |
+| [`negocio-limpieza-vehiculos/`](negocio-limpieza-vehiculos/) | Plan de negocio de limpieza de vehículos. | Documentación |
+| [`tiktok-mcp/`](tiktok-mcp/) | Servidor MCP para publicar borradores en TikTok. | Funcional |
+| [`generador-videos/`](generador-videos/) | Pipeline de generación de vídeo. | Funcional |
+
+Para arrancar el SaaS: [`redacta/README.md`](redacta/README.md).
+
+---
+
 # Estrategia de tienda Shopify — Dropshipping (España)
 
 Plan completo, de menor a mayor presupuesto posible, para lanzar una tienda Shopify con máximas probabilidades de éxito en el mercado español.

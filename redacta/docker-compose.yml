@@ -1,0 +1,28 @@
+### Entorno de desarrollo local.
+### Levanta unicamente PostgreSQL: la app se ejecuta con `npm run dev`
+### para conservar el hot-reload.
+###
+###   docker compose up -d
+###   npm run db:push && npm run db:seed
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: redacta-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: redacta
+      POSTGRES_PASSWORD: redacta
+      POSTGRES_DB: redacta
+    ports:
+      - '5432:5432'
+    volumes:
+      - redacta-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U redacta -d redacta']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  redacta-pgdata:
