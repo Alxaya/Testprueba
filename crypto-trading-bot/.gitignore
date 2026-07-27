@@ -5,12 +5,16 @@ config/config.yaml
 *.pem
 
 # Datos y estado
-data/
-logs/
+# Las barras iniciales son OBLIGATORIAS: sin ellas, "data/" coincide con
+# cualquier directorio llamado así a cualquier profundidad y se traga
+# bot/data/ (el paquete de proveedores de velas), dejando el repositorio sin
+# código y sin ningún aviso.
+/data/
+/logs/
+/backtest_output/
 *.db
 *.db-wal
 *.db-shm
-backtest_output/
 
 # Python
 __pycache__/
