@@ -92,6 +92,52 @@ en el YAML. ccxt soporta más de cien.
 
 ---
 
+## Ejecutar desde un móvil (Android)
+
+**Recomendación: no ejecutes el bot en el teléfono.** Android suspende procesos
+en segundo plano (Doze), corta la red al cambiar de wifi a datos y mata
+aplicaciones cuando necesita memoria. Un bot de trading que se detiene a mitad de
+una operación deja una posición abierta sin nadie vigilando su stop.
+
+La arquitectura sensata es: **el bot en un servidor, el panel en el móvil.**
+
+```bash
+# En el servidor (VPS, Raspberry Pi, un PC encendido)
+python -m bot paper
+
+# Desde el móvil, túnel SSH con Termux o JuiceSSH:
+ssh -L 8000:127.0.0.1:8000 usuario@servidor
+# y abre http://127.0.0.1:8000 en el navegador del móvil
+```
+
+El panel es responsive y funciona bien en pantalla de teléfono.
+
+### Explorar el proyecto en el propio móvil (Termux)
+
+Para backtestear y ver el panel en local —**no** para operar 24/7— se puede usar
+[Termux](https://f-droid.org/packages/com.termux/) (instálalo desde F-Droid; la
+versión de Google Play está abandonada):
+
+```bash
+pkg update && pkg install python git
+pip install -r requirements-minimal.txt     # sin ccxt
+python -m bot backtest --synthetic --save-db
+python -m bot web
+```
+
+Y abre `http://127.0.0.1:8000` en el navegador del teléfono.
+
+`requirements-minimal.txt` omite **ccxt** a propósito: arrastra `cryptography`,
+que necesita compilarse con Rust y en Termux es lento y frágil. Como el código lo
+importa de forma perezosa, sin él funcionan `doctor`, `backtest`, `optimize` y
+`web`; solo se pierden `download`, `paper` y `live`. `python -m bot doctor` lo
+indica como aviso, no como error.
+
+Si numpy falla al compilar, usa el paquete del sistema: `pkg install python-numpy`.
+
+Para backtestear con datos reales sin ccxt en el móvil, descarga el histórico en
+un ordenador y copia `data/ohlcv.db` al teléfono.
+
 ## Estructura
 
 ```

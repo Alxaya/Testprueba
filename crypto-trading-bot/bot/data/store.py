@@ -133,7 +133,7 @@ class OHLCVStore:
     def close(self) -> None:
         self._conn.close()
 
-    def __enter__(self) -> "OHLCVStore":
+    def __enter__(self) -> OHLCVStore:
         return self
 
     def __exit__(self, *exc_info: object) -> None:

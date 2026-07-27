@@ -36,7 +36,7 @@ def create_exchange(config: ExchangeConfig, *, with_credentials: bool = False) -
     sin tener la librería instalada.
     """
     try:
-        import ccxt  # noqa: PLC0415  (import perezoso deliberado)
+        import ccxt
     except ImportError as exc:  # pragma: no cover
         raise NetworkError(
             "ccxt no está instalado. Ejecuta: pip install ccxt"
@@ -117,7 +117,7 @@ def with_retries(
 ) -> Any:
     """Ejecuta `func` reintentando errores transitorios con backoff + jitter."""
     try:
-        import ccxt  # noqa: PLC0415
+        import ccxt
     except ImportError:  # pragma: no cover
         ccxt = None  # type: ignore[assignment]
 
@@ -125,7 +125,7 @@ def with_retries(
     for attempt in range(max_retries + 1):
         try:
             return func(*args, **kwargs)
-        except Exception as exc:  # noqa: BLE001 - se reclasifica más abajo
+        except Exception as exc:
             last_error = exc
             transient = False
             wait = base_delay * (2**attempt)

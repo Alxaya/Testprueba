@@ -1,0 +1,23 @@
+# Instalación mínima: backtesting y panel web, SIN conexión a exchange.
+#
+# Para entornos donde compilar es un problema — Termux en Android es el caso
+# típico, porque ccxt arrastra `cryptography`, que necesita Rust.
+#
+# Con esto funcionan:
+#   · python -m bot doctor
+#   · python -m bot backtest --synthetic        (datos sintéticos)
+#   · python -m bot backtest                    (si ya tienes datos en caché)
+#   · python -m bot optimize
+#   · python -m bot web                         (panel sobre la base de datos)
+#
+# NO funcionan sin ccxt: download, paper y live. El código lo importa de forma
+# perezosa, así que su ausencia no impide arrancar el resto.
+
+numpy>=1.26            # indicadores vectorizados
+PyYAML>=6.0            # configuración
+pydantic>=2.6          # validación de la configuración
+
+# Panel web. Sin el extra [standard]: uvloop y httptools requieren compilación
+# y el panel funciona perfectamente sin ellos.
+fastapi>=0.110
+uvicorn>=0.27

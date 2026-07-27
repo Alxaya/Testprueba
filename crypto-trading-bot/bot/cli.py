@@ -115,6 +115,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     problems: list[str] = []
     warnings: list[str] = []
+    missing_optional: list[tuple[str, str]] = []
 
     print(f"Modo               : {config.mode.value}")
     print(f"Exchange           : {config.exchange.id} (testnet={config.exchange.testnet})")
@@ -132,19 +133,41 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"  Drawdown máximo        : {config.risk.max_drawdown_pct} %")
     print()
 
-    # Dependencias
+    # Dependencias.
+    #
+    # Solo tres son imprescindibles. El resto se importa de forma perezosa, así
+    # que su ausencia limita funciones concretas pero no impide arrancar: puedes
+    # backtestear y ver el panel sin ccxt instalado. Esto importa de verdad en
+    # entornos donde compilar es un problema (Termux en Android, por ejemplo,
+    # donde ccxt arrastra `cryptography` y necesita Rust).
     print("Dependencias:")
-    for module, needed_for in [
-        ("numpy", "indicadores"), ("ccxt", "exchange"), ("fastapi", "panel web"),
-        ("uvicorn", "panel web"), ("httpx", "Telegram"), ("yaml", "configuración"),
+    for module, needed_for, required in [
+        ("numpy", "indicadores", True),
+        ("yaml", "configuración", True),
+        ("pydantic", "validación de configuración", True),
+        ("ccxt", "descargar datos y operar en un exchange", False),
+        ("fastapi", "panel web", False),
+        ("uvicorn", "panel web", False),
+        ("httpx", "alertas de Telegram", False),
     ]:
         try:
             __import__(module)
             print(f"  ✓ {module:<10} ({needed_for})")
         except ImportError:
-            print(f"  ✗ {module:<10} ({needed_for}) — FALTA")
-            problems.append(f"Falta la dependencia {module}: pip install -r requirements.txt")
+            if required:
+                print(f"  ✗ {module:<10} ({needed_for}) — FALTA, imprescindible")
+                problems.append(f"Falta la dependencia {module}: pip install -r requirements.txt")
+            else:
+                print(f"  · {module:<10} ({needed_for}) — ausente")
+                missing_optional.append((module, needed_for))
     print()
+
+    if missing_optional:
+        disabled = ", ".join(needed_for for _, needed_for in missing_optional)
+        warnings.append(
+            f"Funciones no disponibles por dependencias ausentes: {disabled}. "
+            f"El backtest con datos ya descargados o sintéticos sí funciona."
+        )
 
     # Credenciales
     print("Credenciales:")

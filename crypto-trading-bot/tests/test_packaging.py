@@ -54,7 +54,7 @@ def test_every_source_file_reaches_a_clean_clone() -> None:
 
     assert not excluded, (
         "Estos ficheros del paquete están excluidos por .gitignore y NO llegarían "
-        f"a un clon limpio:\n  " + "\n  ".join(excluded)
+        "a un clon limpio:\n  " + "\n  ".join(excluded)
     )
 
 
@@ -70,7 +70,7 @@ def test_all_modules_import() -> None:
             continue  # ejecutaría el CLI al importarlo
         try:
             importlib.import_module(module.name)
-        except Exception as exc:  # noqa: BLE001 - queremos el listado completo
+        except Exception as exc:
             failures.append(f"{module.name}: {type(exc).__name__}: {exc}")
 
     assert not failures, "Módulos que no importan:\n  " + "\n  ".join(failures)
