@@ -162,6 +162,12 @@ async function api(path, options = {}) {
   if (TOKEN) headers["Authorization"] = "Bearer " + TOKEN;
   const res = await fetch(path, Object.assign({}, options, { headers }));
   if (res.status === 401) throw new Error("No autorizado: añade ?token=TU_TOKEN a la URL");
+  if (res.status === 403) {
+    // Escritura deshabilitada por falta de token. El servidor explica cómo
+    // habilitarla; se muestra tal cual en lugar de un "HTTP 403" opaco.
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "Acción no permitida");
+  }
   if (!res.ok) throw new Error(path + " → HTTP " + res.status);
   return res.json();
 }
@@ -347,16 +353,20 @@ function drawChart(points) {
 }
 
 document.getElementById("killBtn").addEventListener("click", async () => {
-  const status = await api("/api/status");
-  const engaged = status.risk && status.risk.kill_switch;
-  const action = engaged ? "DESACTIVAR" : "ACTIVAR";
-  if (!confirm(`¿Seguro que quieres ${action} el kill switch?`)) return;
-  await api("/api/killswitch", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ engage: !engaged, reason: "Acción manual desde el panel" }),
-  });
-  refresh();
+  try {
+    const status = await api("/api/status");
+    const engaged = status.risk && status.risk.kill_switch;
+    const action = engaged ? "DESACTIVAR" : "ACTIVAR";
+    if (!confirm(`¿Seguro que quieres ${action} el kill switch?`)) return;
+    await api("/api/killswitch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ engage: !engaged, reason: "Acción manual desde el panel" }),
+    });
+    refresh();
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 async function refresh() {

@@ -112,6 +112,12 @@ ssh -L 8000:127.0.0.1:8000 usuario@servidor
 
 El panel es responsive y funciona bien en pantalla de teléfono.
 
+También puedes exponerlo con un túnel (Cloudflare Tunnel, ngrok) para llegar sin
+IP fija. **Define `WEB_AUTH_TOKEN` antes de hacerlo**: el bot sigue escuchando en
+localhost, así que la validación de configuración no detecta el túnel. Sin token,
+los controles de escritura devuelven 403 por seguridad. Detalles en
+[`docs/04-operacion.md`](docs/04-operacion.md#túneles-cloudflare-tunnel-ngrok-ssh-inverso).
+
 ### Explorar el proyecto en el propio móvil (Termux)
 
 Para backtestear y ver el panel en local —**no** para operar 24/7— se puede usar

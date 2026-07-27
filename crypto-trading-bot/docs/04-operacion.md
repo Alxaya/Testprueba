@@ -186,6 +186,51 @@ preferencia:
 
 Nunca abras el puerto directamente a internet sin TLS: el token viajaría en claro.
 
+### Túneles (Cloudflare Tunnel, ngrok, SSH inverso)
+
+Un túnel es la forma más cómoda de llegar al panel desde el móvil sin abrir
+puertos ni tener IP fija:
+
+```bash
+cloudflared tunnel --url http://localhost:8000
+# devuelve una URL https://algo-aleatorio.trycloudflare.com
+```
+
+**Aquí hay una trampa que conviene entender.** El bot sigue escuchando en
+`127.0.0.1`, así que la validación de configuración que exige token al bindear
+fuera de localhost **no salta** — pero el túnel acaba de publicar tu panel en
+internet. La comprobación no puede detectarlo: desde dentro del proceso, un
+túnel es indistinguible de nada.
+
+Por eso el panel falla en cerrado: **sin token, los endpoints de escritura
+devuelven 403**, incluso en localhost. Si no fuese así, cualquiera con la URL
+podría accionar tu kill switch y cerrar tus posiciones.
+
+Antes de levantar un túnel, siempre:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# ponlo en .env como WEB_AUTH_TOKEN y reinicia el bot
+```
+
+Y accede con el token en la URL: `https://…trycloudflare.com/?token=TU_TOKEN`
+(el panel lo guarda en `localStorage`, así que solo hace falta la primera vez).
+
+Ten presente además que:
+
+- Las URLs de `trycloudflare.com` son aleatorias pero **no son secretas**: viajan
+  por el historial del navegador, por donde las compartas y por los registros de
+  cualquier intermediario. El token es lo que protege, no lo impredecible de la
+  URL.
+- Con una cuenta de Cloudflare puedes poner **Cloudflare Access** delante del
+  túnel y exigir login por correo. Es gratis para uso personal y bastante mejor
+  que depender solo del token.
+- Un túnel rápido muere al cerrar el proceso `cloudflared`. Para algo permanente
+  hace falta un túnel con nombre y un dominio en Cloudflare.
+
+El bot avisa en el log al arrancar siempre que el panel funcione sin token, sea
+cual sea el host, precisamente por este escenario.
+
 ---
 
 ## 7. Copias de seguridad

@@ -487,7 +487,7 @@ async def _serve(engine: Any, config: BotConfig, repo: Repository) -> None:
     if config.web.enabled:
         import uvicorn
 
-        from bot.web.app import create_app
+        from bot.web.app import create_app, warn_if_unprotected
 
         app = create_app(config, engine=engine, repository=repo)
         server = uvicorn.Server(
@@ -501,6 +501,7 @@ async def _serve(engine: Any, config: BotConfig, repo: Repository) -> None:
         server.install_signal_handlers = lambda: None  # type: ignore[method-assign]
         tasks.append(asyncio.create_task(server.serve(), name="web"))
         log.info("Panel disponible en http://%s:%d", config.web.host, config.web.port)
+        warn_if_unprotected(config)
 
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 

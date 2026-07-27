@@ -60,6 +60,12 @@ def create_app(
         Si no hay token configurado y el panel escucha en localhost, se permite el
         acceso: obligar a un token para mirar tu propio bot en tu propia máquina
         solo consigue que la gente desactive la seguridad entera.
+
+        Ojo: esto **no** protege de un túnel (Cloudflare Tunnel, ngrok, SSH
+        inverso). El bot sigue escuchando en 127.0.0.1, así que la validación de
+        configuración no salta, pero el túnel publica el panel en internet. Por
+        eso los endpoints de escritura fallan en cerrado sin token — ver
+        `require_write_auth`.
         """
         if not token:
             return
@@ -72,6 +78,34 @@ def create_app(
                 detail="Token no válido o ausente",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+    def require_write_auth(request: Request) -> None:
+        """Autenticación para los endpoints que **cambian el estado del bot**.
+
+        A diferencia de la lectura, aquí no hay excepción por localhost: sin token
+        configurado, la escritura se deniega.
+
+        El motivo es concreto. Basta un `cloudflared tunnel --url
+        http://localhost:8000` para que el panel quede publicado en internet sin
+        que el bot se entere: sigue escuchando en 127.0.0.1 y la validación de
+        configuración no tiene forma de saberlo. Si la escritura estuviese abierta
+        "porque es localhost", cualquiera con la URL podría accionar el kill
+        switch y cerrar tus posiciones.
+
+        Fallar en cerrado cuesta un mensaje de error claro; fallar en abierto
+        cuesta dinero.
+        """
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Los controles de escritura están desactivados porque no hay token. "
+                    f"Define {config.web.auth_token_env} y reinicia para habilitarlos. "
+                    "Mientras tanto, el kill switch sigue disponible creando el fichero "
+                    f"{config.storage.kill_switch_file}"
+                ),
+            )
+        require_auth(request)
 
     # ------------------------------------------------------------- endpoints
 
@@ -154,7 +188,7 @@ def create_app(
         """Estado del gestor de riesgo y sus límites."""
         return engine.risk.snapshot() if engine else {}
 
-    @app.post("/api/killswitch", dependencies=[Depends(require_auth)])
+    @app.post("/api/killswitch", dependencies=[Depends(require_write_auth)])
     def set_killswitch(payload: dict[str, Any]) -> dict[str, Any]:
         """Activa o desactiva el kill switch.
 
@@ -216,6 +250,22 @@ def run_web(
 
     app = create_app(config, engine=engine, repository=repository)
     log.info("Panel disponible en http://%s:%d", config.web.host, config.web.port)
-    if not config.web.auth_token and config.web.host not in ("127.0.0.1", "localhost"):
-        log.warning("⚠️  El panel escucha fuera de localhost SIN token de autenticación")
+    warn_if_unprotected(config)
     uvicorn.run(app, host=config.web.host, port=config.web.port, log_level="warning")
+
+
+def warn_if_unprotected(config: BotConfig) -> None:
+    """Avisa cuando el panel no tiene token.
+
+    Se avisa aunque escuche en localhost, porque un túnel (Cloudflare Tunnel,
+    ngrok, SSH inverso) publica en internet un panel que sigue estando bindeado a
+    127.0.0.1. Es el caso en el que la gente se expone sin darse cuenta.
+    """
+    if config.web.auth_token:
+        return
+    log.warning(
+        "El panel funciona SIN token: los datos son visibles para quien alcance "
+        "http://%s:%d y los controles de escritura están desactivados. "
+        "Si vas a exponerlo con un túnel, define %s antes.",
+        config.web.host, config.web.port, config.web.auth_token_env,
+    )

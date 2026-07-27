@@ -264,3 +264,71 @@ def test_web_api_is_read_only_and_authenticated(tmp_path, monkeypatch) -> None:
         # La configuración servida no filtra secretos.
         served = client.get("/api/config", headers=headers).json()
         assert "api_key" not in served["exchange"]
+
+
+def test_write_endpoints_fail_closed_without_token(tmp_path, monkeypatch) -> None:
+    """Sin token configurado, el kill switch se deniega aunque escuche en localhost.
+
+    Escenario que motiva la regla: `cloudflared tunnel --url http://localhost:8000`
+    publica el panel en internet mientras el bot sigue bindeado a 127.0.0.1, así
+    que la validación de configuración no se entera. Si la escritura estuviese
+    abierta "porque es localhost", cualquiera con la URL podría accionar el kill
+    switch y cerrar posiciones ajenas.
+    """
+    from fastapi.testclient import TestClient
+
+    from bot.config.schema import StorageConfig
+    from bot.persistence.repository import Repository
+    from bot.web.app import create_app
+
+    monkeypatch.delenv("WEB_AUTH_TOKEN", raising=False)
+    config = BotConfig(
+        web=WebConfig(host="127.0.0.1", auth_token_env="WEB_AUTH_TOKEN"),
+        storage=StorageConfig(db_path=str(tmp_path / "bot.db")),
+    )
+    with Repository(tmp_path / "bot.db") as repo:
+        repo.start_run(RunMode.PAPER)
+        client = TestClient(create_app(config, engine=None, repository=repo))
+
+        # La lectura sigue permitida en localhost: es la comodidad que justifica
+        # no exigir token para mirar tu propio bot en tu propia máquina.
+        assert client.get("/api/status").status_code == 200
+
+        # La escritura, no.
+        response = client.post("/api/killswitch", json={"engage": True})
+        assert response.status_code == 403
+        detail = response.json()["detail"]
+        assert "WEB_AUTH_TOKEN" in detail, "el error debe decir cómo habilitarlo"
+        assert "KILL" in detail, "y ofrecer la alternativa por fichero"
+
+
+def test_write_endpoints_work_with_token(tmp_path, monkeypatch) -> None:
+    """Con token, la escritura funciona y sigue exigiendo credencial válida."""
+    from fastapi.testclient import TestClient
+
+    from bot.config.schema import StorageConfig
+    from bot.persistence.repository import Repository
+    from bot.web.app import create_app
+
+    monkeypatch.setenv("WEB_AUTH_TOKEN", "token-de-prueba")
+    config = BotConfig(
+        web=WebConfig(host="127.0.0.1", auth_token_env="WEB_AUTH_TOKEN"),
+        storage=StorageConfig(db_path=str(tmp_path / "bot.db")),
+    )
+    with Repository(tmp_path / "bot.db") as repo:
+        repo.start_run(RunMode.PAPER)
+        client = TestClient(create_app(config, engine=None, repository=repo))
+
+        assert client.post("/api/killswitch", json={"engage": True}).status_code == 401
+        assert client.post(
+            "/api/killswitch", json={"engage": True},
+            headers={"Authorization": "Bearer malo"},
+        ).status_code == 401
+
+        # Sin motor adjunto responde 503, pero ya ha pasado la autenticación:
+        # es la prueba de que el token abre la puerta.
+        ok = client.post(
+            "/api/killswitch", json={"engage": True},
+            headers={"Authorization": "Bearer token-de-prueba"},
+        )
+        assert ok.status_code == 503
