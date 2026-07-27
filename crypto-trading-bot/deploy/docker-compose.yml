@@ -1,0 +1,39 @@
+services:
+  trading-bot:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: crypto-trading-bot:latest
+    container_name: trading-bot
+    restart: unless-stopped
+
+    # Los secretos vienen del .env del host, nunca de la imagen.
+    env_file: ../.env
+
+    volumes:
+      # Datos y logs viven fuera del contenedor: recrear la imagen no pierde
+      # el histórico ni la base de datos.
+      - ../data:/app/data
+      - ../logs:/app/logs
+      # Configuración en solo lectura: el contenedor no debe poder alterarla.
+      - ../config/config.yaml:/app/config/config.yaml:ro
+
+    ports:
+      # Solo se publica en localhost del host. Para acceder desde fuera, usa un
+      # túnel SSH o un proxy inverso con TLS.
+      - "127.0.0.1:8000:8000"
+
+    # El panel debe escuchar en 0.0.0.0 DENTRO del contenedor para que el
+    # mapeo de puertos funcione; la exposición real la limita el bind de arriba.
+    environment:
+      - BOT__WEB__HOST=0.0.0.0
+      - TZ=UTC
+
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+    # Límites de recursos: un bot que se dispara no puede tumbar el host.
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1G }

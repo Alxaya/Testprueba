@@ -1,0 +1,180 @@
+# ============================================================================
+# Configuración del bot de trading
+# ============================================================================
+# Cópialo a config/config.yaml y ajústalo:
+#     cp config/config.example.yaml config/config.yaml
+#
+# NUNCA pongas claves de API aquí. Este fichero declara el NOMBRE de la variable
+# de entorno; el valor se lee del entorno o del .env. Así puedes versionar tu
+# configuración sin filtrar secretos.
+#
+# Cualquier valor se puede sobrescribir por entorno con el prefijo BOT__:
+#     BOT__RISK__RISK_PER_TRADE_PCT=0.25
+# ============================================================================
+
+# backtest | paper | live
+mode: paper
+
+exchange:
+  id: binance
+  # true = testnet del exchange. Déjalo en true hasta que sepas exactamente
+  # lo que estás haciendo.
+  testnet: true
+  api_key_env: BINANCE_API_KEY
+  api_secret_env: BINANCE_API_SECRET
+  quote_currency: USDT
+  fees:
+    # Puntos básicos (10 bps = 0,10 %). Son las comisiones de Binance spot sin
+    # descuentos. Ponerlas más bajas de las reales es engañarte a ti mismo.
+    maker_bps: 10
+    taker_bps: 10
+  enable_rate_limit: true
+  request_timeout_ms: 20000
+  max_retries: 4
+
+market:
+  symbols:
+    - BTC/USDT
+    - ETH/USDT
+  timeframe: 1h
+  history_bars: 500
+  # Segundos de espera tras el cierre de vela antes de pedir datos: el exchange
+  # tarda un poco en consolidar la última vela.
+  confirmation_delay_s: 5
+  # Si la última vela es más vieja que esto, el feed está roto y no se opera.
+  max_data_staleness_bars: 2
+
+portfolio:
+  # Solo aplica a backtest y paper. En live manda el saldo real del exchange.
+  initial_balance: 10000
+  base_currency: USDT
+
+# ----------------------------------------------------------------------------
+# GESTIÓN DE RIESGO
+# Los valores por defecto son conservadores a propósito. Si te parecen tímidos,
+# ese es justamente el punto: los límites existen para el día en que la
+# estrategia falle, no para el día en que funcione.
+# ----------------------------------------------------------------------------
+risk:
+  # % del capital que se arriesga por operación, medido sobre la distancia al
+  # stop (NO sobre el nocional). Con 0,5 %, diez pérdidas seguidas son un -5 %.
+  risk_per_trade_pct: 0.5
+  max_position_pct: 20            # tope de nocional por posición
+  max_total_exposure_pct: 60      # tope de exposición agregada
+  max_concurrent_positions: 3
+
+  # Cortacircuitos
+  max_daily_loss_pct: 3           # deja de abrir posiciones el resto del día
+  max_drawdown_pct: 15            # KILL SWITCH: cierra todo y para
+  max_consecutive_losses: 5
+  cooldown_bars: 3
+
+  # Stops y objetivos
+  stop_atr_period: 14
+  stop_atr_multiplier: 2.0        # stop = entrada - 2 × ATR
+  take_profit_r_multiple: 2.0     # objetivo = 2 × la distancia al stop (0 = off)
+  trailing_stop_enabled: true
+  trailing_stop_atr_multiplier: 3.0
+  fallback_stop_pct: 5.0          # si no hay ATR disponible
+
+  min_notional: 10
+  allow_shorting: false           # spot: los cortos no existen
+  scale_by_confidence: false
+
+execution:
+  order_type: market
+  slippage_bps: 5                 # modelado en backtest y paper
+  limit_offset_bps: 5
+  max_retries: 3
+  retry_backoff_s: 1.0
+  # Vigila los stops entre cierres de vela. Con velas de 4 h, sin esto un stop
+  # podría tardar horas en dispararse.
+  intrabar_stop_check: true
+  stop_check_interval_s: 60
+
+# ----------------------------------------------------------------------------
+# ESTRATEGIAS
+# Se pueden ejecutar varias a la vez. Cada una mantiene sus propias posiciones
+# lógicas, así se puede medir cuál aporta y cuál resta.
+# Ver la documentación completa de cada una:  python -m bot strategies
+# ----------------------------------------------------------------------------
+strategies:
+  - id: ema_btc
+    strategy: ema_crossover
+    enabled: true
+    symbols: [BTC/USDT]
+    risk_weight: 1.0
+    params:
+      fast_period: 21
+      slow_period: 55
+      trend_period: 200
+      use_trend_filter: true
+      atr_period: 14
+      atr_stop_multiplier: 2.0
+
+  - id: donchian_eth
+    strategy: donchian_breakout
+    enabled: true
+    symbols: [ETH/USDT]
+    risk_weight: 1.0
+    params:
+      entry_period: 20
+      exit_period: 10
+      atr_period: 14
+      atr_stop_multiplier: 2.0
+
+  # Reversión a la media. Desactivada por defecto: su perfil de pagos (muchas
+  # ganancias pequeñas, pocas pérdidas grandes) exige entender bien el riesgo
+  # antes de activarla.
+  - id: rsi_btc
+    strategy: rsi_mean_reversion
+    enabled: false
+    symbols: [BTC/USDT]
+    risk_weight: 0.5
+    params:
+      rsi_period: 14
+      oversold: 30
+      exit_level: 55
+      trend_period: 200
+      use_trend_filter: true
+      atr_stop_multiplier: 2.0
+      max_bars_in_trade: 48
+
+notifications:
+  telegram:
+    enabled: false
+    bot_token_env: TELEGRAM_BOT_TOKEN
+    chat_id_env: TELEGRAM_CHAT_ID
+    min_level: info               # debug | info | warning | error | critical
+    heartbeat_hours: 12           # 0 = desactivado
+    dedupe_window_s: 300
+
+web:
+  enabled: true
+  # 127.0.0.1 = solo accesible desde esta máquina. Para exponerlo fuera hace
+  # falta definir WEB_AUTH_TOKEN (la configuración lo exige) y, muy
+  # recomendable, un proxy inverso con TLS delante.
+  host: 127.0.0.1
+  port: 8000
+  auth_token_env: WEB_AUTH_TOKEN
+  refresh_seconds: 15
+
+storage:
+  db_path: data/bot.db
+  ohlcv_path: data/ohlcv.db
+  # Crear este fichero (`touch data/KILL`) detiene la apertura de posiciones
+  # sin necesidad de tocar el proceso.
+  kill_switch_file: data/KILL
+
+logging:
+  level: INFO
+  directory: logs
+  json_format: false
+  max_bytes: 10485760
+  backup_count: 5
+
+# ----------------------------------------------------------------------------
+# Interruptor de seguridad para el modo live. Sin esto en true, el modo `live`
+# NO arranca. Es incómodo a propósito.
+# ----------------------------------------------------------------------------
+i_understand_live_trading_risk: false

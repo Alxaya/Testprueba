@@ -1,0 +1,52 @@
+# Unidad systemd para ejecutar el bot 24/7.
+#
+#   sudo cp deploy/trading-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now trading-bot
+#   sudo journalctl -u trading-bot -f
+#
+# Ajusta User, WorkingDirectory y las rutas a tu instalación.
+
+[Unit]
+Description=Bot de trading de criptomonedas
+Documentation=file:///opt/crypto-trading-bot/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+Group=bot
+WorkingDirectory=/opt/crypto-trading-bot
+Environment=PYTHONUNBUFFERED=1
+Environment=TZ=UTC
+EnvironmentFile=/opt/crypto-trading-bot/.env
+
+ExecStart=/opt/crypto-trading-bot/.venv/bin/python -m bot -c config/config.yaml paper
+
+# SIGTERM provoca un apagado ordenado. NO cierra posiciones (eso es el kill
+# switch), así que un reinicio no toma decisiones de trading por su cuenta.
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+Restart=always
+RestartSec=30
+# Si se reinicia 5 veces en 10 minutos, para de intentarlo y avisa: algo está
+# roto de verdad y reiniciar en bucle solo empeora las cosas.
+StartLimitBurst=5
+StartLimitIntervalSec=600
+
+# --- Endurecimiento -------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/crypto-trading-bot/data /opt/crypto-trading-bot/logs
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

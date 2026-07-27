@@ -1,0 +1,15 @@
+# Núcleo
+numpy>=1.26            # indicadores vectorizados
+ccxt>=4.2              # acceso unificado a exchanges
+PyYAML>=6.0            # configuración
+pydantic>=2.6          # validación estricta de la configuración
+
+# Panel web
+fastapi>=0.110
+uvicorn[standard]>=0.27
+
+# Alertas
+httpx>=0.27            # cliente HTTP para Telegram
+
+# Opcional: bucle de eventos más rápido (Linux/macOS). El bot funciona sin él.
+# uvloop>=0.19

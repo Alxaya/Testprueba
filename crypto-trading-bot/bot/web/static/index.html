@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel · Bot de trading</title>
+<!--
+  Dashboard autocontenido: sin CDN, sin fuentes externas, sin librerías de
+  terceros. El gráfico se dibuja con canvas puro. Así el panel funciona en un
+  servidor sin salida a internet y no informa a nadie de cuándo lo consultas.
+-->
+<style>
+  :root {
+    --bg: #0e1117; --panel: #161b22; --border: #262d38; --text: #e6edf3;
+    --muted: #8b949e; --green: #3fb950; --red: #f85149; --amber: #d29922;
+    --blue: #58a6ff;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8fa; --panel: #ffffff; --border: #d8dee4; --text: #1f2328;
+      --muted: #656d76; --green: #1a7f37; --red: #cf222e; --amber: #9a6700;
+      --blue: #0969da;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 14px 20px; background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .spacer { flex: 1; }
+  .badge {
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  .badge.live { background: rgba(248,81,73,.15); color: var(--red); border-color: var(--red); }
+  .badge.paper { background: rgba(88,166,255,.15); color: var(--blue); border-color: var(--blue); }
+  .badge.ok { background: rgba(63,185,80,.15); color: var(--green); border-color: var(--green); }
+  .badge.off { background: rgba(139,148,158,.15); color: var(--muted); }
+  main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+             color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .stat { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .pos { color: var(--green); } .neg { color: var(--red); } .warn { color: var(--amber); }
+  section { margin-top: 20px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child, th.l, td.l { text-align: left; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  tbody tr:hover { background: rgba(127,127,127,.06); }
+  canvas { width: 100%; height: 260px; display: block; }
+  button {
+    font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+  }
+  button:hover { border-color: var(--muted); }
+  button.danger { border-color: var(--red); color: var(--red); }
+  button.danger:hover { background: rgba(248,81,73,.12); }
+  .empty { color: var(--muted); padding: 20px; text-align: center; font-size: 13px; }
+  details { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; }
+  .disclaimer {
+    margin-top: 28px; padding: 14px 16px; border-radius: 8px; font-size: 12px;
+    background: rgba(210,153,34,.1); border: 1px solid var(--amber); color: var(--amber);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Bot de trading</h1>
+  <span id="mode" class="badge">—</span>
+  <span id="running" class="badge off">—</span>
+  <span id="kill" class="badge off" hidden>KILL SWITCH</span>
+  <span id="readonly" class="badge off" hidden>SOLO LECTURA</span>
+  <div class="spacer"></div>
+  <span class="sub" id="updated">—</span>
+  <button id="killBtn" class="danger">Activar kill switch</button>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card"><h2>Equity</h2><div class="stat" id="equity">—</div><div class="sub" id="equitySub">—</div></div>
+    <div class="card"><h2>Rentabilidad</h2><div class="stat" id="ret">—</div><div class="sub" id="retSub">desde el inicio</div></div>
+    <div class="card"><h2>Drawdown</h2><div class="stat" id="dd">—</div><div class="sub" id="ddSub">desde el máximo</div></div>
+    <div class="card"><h2>Posiciones</h2><div class="stat" id="npos">—</div><div class="sub" id="nposSub">—</div></div>
+    <div class="card"><h2>Operaciones</h2><div class="stat" id="ntrades">—</div><div class="sub" id="ntradesSub">—</div></div>
+  </div>
+
+  <section class="card">
+    <h2>Curva de equity</h2>
+    <canvas id="chart"></canvas>
+  </section>
+
+  <section class="card">
+    <h2>Posiciones abiertas</h2>
+    <div class="table-wrap"><table id="positions">
+      <thead><tr>
+        <th class="l">Símbolo</th><th class="l">Estrategia</th><th>Cantidad</th>
+        <th>Entrada</th><th>Actual</th><th>Stop</th><th>Objetivo</th><th>PnL</th><th>PnL %</th><th>Velas</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+    <div class="empty" id="posEmpty">Sin posiciones abiertas</div>
+  </section>
+
+  <section class="card">
+    <h2>Últimas operaciones cerradas</h2>
+    <div class="table-wrap"><table id="trades">
+      <thead><tr>
+        <th class="l">Cierre</th><th class="l">Símbolo</th><th class="l">Estrategia</th>
+        <th>Entrada</th><th>Salida</th><th>PnL</th><th>PnL %</th><th>R</th><th class="l">Motivo</th>
+      </tr></thead><tbody></tbody>
+    </table></div>
+    <div class="empty" id="tradesEmpty">Todavía no hay operaciones cerradas</div>
+  </section>
+
+  <section class="card">
+    <h2>Estrategias activas</h2>
+    <div id="strategies"><div class="empty">Cargando…</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Riesgo</h2>
+    <div class="table-wrap"><table id="risk"><tbody></tbody></table></div>
+  </section>
+
+  <div class="disclaimer">
+    ⚠️ Operar con criptomonedas conlleva riesgo de pérdida total del capital. Este
+    panel muestra resultados pasados, que no predicen los futuros. Nada aquí es
+    asesoramiento financiero.
+  </div>
+</main>
+
+<script>
+"use strict";
+// El token puede venir en la URL (?token=...) o guardarse en localStorage.
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get("token") || localStorage.getItem("botToken") || "";
+if (params.get("token")) localStorage.setItem("botToken", params.get("token"));
+
+const fmt = (n, d = 2) =>
+  n === null || n === undefined || Number.isNaN(n)
+    ? "—"
+    : Number(n).toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (n) => (n >= 0 ? "+" : "") + fmt(n) + " %";
+const cls = (n) => (n > 0 ? "pos" : n < 0 ? "neg" : "");
+const time = (ms) => (ms ? new Date(ms).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : "—");
+
+async function api(path, options = {}) {
+  const headers = Object.assign({}, options.headers);
+  if (TOKEN) headers["Authorization"] = "Bearer " + TOKEN;
+  const res = await fetch(path, Object.assign({}, options, { headers }));
+  if (res.status === 401) throw new Error("No autorizado: añade ?token=TU_TOKEN a la URL");
+  if (!res.ok) throw new Error(path + " → HTTP " + res.status);
+  return res.json();
+}
+
+function setBadge(el, text, kind) {
+  el.textContent = text;
+  el.className = "badge " + kind;
+  el.hidden = false;
+}
+
+function renderStatus(s) {
+  setBadge(document.getElementById("mode"), (s.mode || "?").toUpperCase(), s.mode === "live" ? "live" : "paper");
+  setBadge(document.getElementById("running"), s.running ? "ACTIVO" : "PARADO", s.running ? "ok" : "off");
+
+  const kill = document.getElementById("kill");
+  const killed = s.risk && s.risk.kill_switch;
+  kill.hidden = !killed;
+  if (killed) setBadge(kill, "KILL SWITCH", "live");
+  document.getElementById("readonly").hidden = !s.read_only;
+  if (s.read_only) setBadge(document.getElementById("readonly"), "SOLO LECTURA", "off");
+
+  document.getElementById("killBtn").textContent = killed ? "Desactivar kill switch" : "Activar kill switch";
+  document.getElementById("updated").textContent = "Actualizado: " + time(s.last_update_ts);
+
+  document.getElementById("equity").textContent = fmt(s.equity);
+  document.getElementById("equitySub").textContent =
+    "efectivo " + fmt(s.cash) + " · inicial " + fmt(s.initial_equity);
+
+  const ret = document.getElementById("ret");
+  ret.textContent = pct(s.return_pct);
+  ret.className = "stat " + cls(s.return_pct);
+
+  const dd = document.getElementById("dd");
+  dd.textContent = fmt(s.drawdown_pct) + " %";
+  dd.className = "stat " + (s.drawdown_pct > 10 ? "neg" : s.drawdown_pct > 5 ? "warn" : "");
+
+  document.getElementById("npos").textContent = (s.open_positions || []).length;
+  document.getElementById("nposSub").textContent = (s.symbols || []).join(", ") || "—";
+  document.getElementById("ntrades").textContent = s.closed_trades ?? 0;
+  document.getElementById("ntradesSub").textContent = "comisiones " + fmt(s.total_fees);
+
+  // Posiciones
+  const tbody = document.querySelector("#positions tbody");
+  tbody.innerHTML = "";
+  const positions = s.open_positions || [];
+  document.getElementById("posEmpty").hidden = positions.length > 0;
+  for (const p of positions) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td class="l">${p.symbol}</td><td class="l">${p.strategy_id}</td>` +
+      `<td>${fmt(p.quantity, 6)}</td><td>${fmt(p.entry_price, 4)}</td>` +
+      `<td>${fmt(p.current_price, 4)}</td><td>${p.stop_price ? fmt(p.stop_price, 4) : "—"}</td>` +
+      `<td>${p.take_profit ? fmt(p.take_profit, 4) : "—"}</td>` +
+      `<td class="${cls(p.unrealized_pnl)}">${fmt(p.unrealized_pnl)}</td>` +
+      `<td class="${cls(p.unrealized_pnl_pct)}">${pct(p.unrealized_pnl_pct)}</td><td>${p.bars_held}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Riesgo
+  const riskBody = document.querySelector("#risk tbody");
+  riskBody.innerHTML = "";
+  const limits = (s.risk && s.risk.limits) || {};
+  const rows = [
+    ["Riesgo por operación", fmt(limits.risk_per_trade_pct) + " %"],
+    ["Máx. por posición", fmt(limits.max_position_pct) + " %"],
+    ["Exposición máxima", fmt(limits.max_total_exposure_pct) + " %"],
+    ["Posiciones simultáneas", limits.max_concurrent_positions ?? "—"],
+    ["Pérdida diaria máxima", fmt(limits.max_daily_loss_pct) + " %"],
+    ["Drawdown máximo", fmt(limits.max_drawdown_pct) + " %"],
+    ["PnL de hoy", fmt(s.risk && s.risk.daily_pnl)],
+    ["Pérdidas consecutivas", (s.risk && s.risk.consecutive_losses) ?? 0],
+    ["Enfriamiento activo", s.risk && s.risk.cooldown_active ? "sí" : "no"],
+  ];
+  for (const [k, v] of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="l">${k}</td><td>${v}</td>`;
+    riskBody.appendChild(tr);
+  }
+}
+
+function renderTrades(trades) {
+  const tbody = document.querySelector("#trades tbody");
+  tbody.innerHTML = "";
+  document.getElementById("tradesEmpty").hidden = trades.length > 0;
+  for (const t of trades) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      `<td class="l">${time(t.exit_ts)}</td><td class="l">${t.symbol}</td><td class="l">${t.strategy_id}</td>` +
+      `<td>${fmt(t.entry_price, 4)}</td><td>${fmt(t.exit_price, 4)}</td>` +
+      `<td class="${cls(t.pnl)}">${fmt(t.pnl)}</td><td class="${cls(t.pnl_pct)}">${pct(t.pnl_pct)}</td>` +
+      `<td>${t.r_multiple !== null && t.r_multiple !== undefined ? fmt(t.r_multiple) : "—"}</td>` +
+      `<td class="l">${t.exit_reason}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderStrategies(data) {
+  const container = document.getElementById("strategies");
+  container.innerHTML = "";
+  const active = data.active || [];
+  if (!active.length) {
+    container.innerHTML = '<div class="empty">No hay estrategias activas</div>';
+    return;
+  }
+  for (const s of active) {
+    const doc = s.doc || {};
+    const el = document.createElement("details");
+    const params = Object.entries(s.params || {}).map(([k, v]) => `${k}=${v}`).join(", ");
+    el.innerHTML =
+      `<summary>${s.id} · ${s.strategy} · ${s.symbol} ${s.timeframe}</summary>` +
+      `<ul><li><b>Familia:</b> ${doc.family || "—"}</li>` +
+      `<li><b>Parámetros:</b> ${params || "por defecto"}</li>` +
+      `<li><b>Idea:</b> ${doc.summary || "—"}</li>` +
+      `<li><b>Ventaja teórica:</b> ${doc.edge || "—"}</li>` +
+      `<li><b>Limitaciones:</b><ul>${(doc.limitations || []).map((x) => `<li>${x}</li>`).join("")}</ul></li>` +
+      `<li><b>Riesgos:</b><ul>${(doc.risks || []).map((x) => `<li>${x}</li>`).join("")}</ul></li></ul>`;
+    container.appendChild(el);
+  }
+}
+
+function drawChart(points) {
+  const canvas = document.getElementById("chart");
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.clientWidth, height = canvas.clientHeight;
+  canvas.width = width * dpr; canvas.height = height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, width, height);
+
+  const style = getComputedStyle(document.documentElement);
+  const green = style.getPropertyValue("--green").trim() || "#3fb950";
+  const red = style.getPropertyValue("--red").trim() || "#f85149";
+  const border = style.getPropertyValue("--border").trim() || "#262d38";
+  const muted = style.getPropertyValue("--muted").trim() || "#8b949e";
+
+  if (!points.length) {
+    ctx.fillStyle = muted; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Sin datos de equity todavía", width / 2, height / 2);
+    return;
+  }
+
+  const values = points.map((p) => p.equity);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || Math.abs(max) || 1;
+  const pad = { l: 62, r: 12, t: 12, b: 22 };
+  const w = width - pad.l - pad.r, h = height - pad.t - pad.b;
+  const x = (i) => pad.l + (points.length > 1 ? (i / (points.length - 1)) * w : w / 2);
+  const y = (v) => pad.t + h - ((v - min) / range) * h;
+
+  // Rejilla y etiquetas del eje Y.
+  ctx.strokeStyle = border; ctx.lineWidth = 1;
+  ctx.fillStyle = muted; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) {
+    const value = min + (range * i) / 4, yy = y(value);
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(width - pad.r, yy); ctx.stroke();
+    ctx.fillText(value.toLocaleString("es-ES", { maximumFractionDigits: 0 }), pad.l - 6, yy + 3);
+  }
+
+  const up = values[values.length - 1] >= values[0];
+  const color = up ? green : red;
+
+  // Área bajo la curva.
+  const gradient = ctx.createLinearGradient(0, pad.t, 0, pad.t + h);
+  gradient.addColorStop(0, color + "44");
+  gradient.addColorStop(1, color + "00");
+  ctx.beginPath();
+  ctx.moveTo(x(0), pad.t + h);
+  points.forEach((p, i) => ctx.lineTo(x(i), y(p.equity)));
+  ctx.lineTo(x(points.length - 1), pad.t + h);
+  ctx.closePath();
+  ctx.fillStyle = gradient; ctx.fill();
+
+  // Línea.
+  ctx.beginPath();
+  points.forEach((p, i) => (i === 0 ? ctx.moveTo(x(i), y(p.equity)) : ctx.lineTo(x(i), y(p.equity))));
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+  // Fechas en el eje X.
+  ctx.fillStyle = muted; ctx.textAlign = "left";
+  ctx.fillText(time(points[0].ts), pad.l, height - 6);
+  ctx.textAlign = "right";
+  ctx.fillText(time(points[points.length - 1].ts), width - pad.r, height - 6);
+}
+
+document.getElementById("killBtn").addEventListener("click", async () => {
+  const status = await api("/api/status");
+  const engaged = status.risk && status.risk.kill_switch;
+  const action = engaged ? "DESACTIVAR" : "ACTIVAR";
+  if (!confirm(`¿Seguro que quieres ${action} el kill switch?`)) return;
+  await api("/api/killswitch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ engage: !engaged, reason: "Acción manual desde el panel" }),
+  });
+  refresh();
+});
+
+async function refresh() {
+  try {
+    const [status, trades, equity, strategies] = await Promise.all([
+      api("/api/status"), api("/api/trades?limit=50"),
+      api("/api/equity?limit=1000"), api("/api/strategies"),
+    ]);
+    renderStatus(status);
+    renderTrades(trades);
+    renderStrategies(strategies);
+    drawChart(equity);
+  } catch (err) {
+    document.getElementById("updated").textContent = "Error: " + err.message;
+  }
+}
+
+refresh();
+setInterval(refresh, 15000);
+window.addEventListener("resize", () => api("/api/equity?limit=1000").then(drawChart).catch(() => {}));
+</script>
+</body>
+</html>

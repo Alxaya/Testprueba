@@ -1,0 +1,1 @@
+"""Registro completo en SQLite."""
