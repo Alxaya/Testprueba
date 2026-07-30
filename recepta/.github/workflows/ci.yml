@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    paths: ["recepta/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["recepta/**", ".github/workflows/ci.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: recepta
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: recepta
+          POSTGRES_PASSWORD: recepta
+          POSTGRES_DB: recepta
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U recepta -d recepta"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6380:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://recepta:recepta@localhost:5433/recepta
+      REDIS_URL: redis://localhost:6380
+      ENCRYPTION_KEY: clave-de-pruebas-solo-para-ci-000000000000
+      SESSION_SECRET: secreto-de-pruebas-solo-para-ci-00000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: recepta/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Comprobación de tipos
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Compilación
+        run: pnpm build
+
+      - name: Tests
+        run: pnpm test

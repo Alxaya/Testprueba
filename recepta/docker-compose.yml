@@ -1,0 +1,39 @@
+# Servicios locales de desarrollo. En producción son servicios gestionados
+# en región UE (ver whatsapp-saas/03-arquitectura-tecnica.md §19.2).
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: recepta-postgres
+    environment:
+      POSTGRES_USER: recepta
+      POSTGRES_PASSWORD: recepta
+      POSTGRES_DB: recepta
+      # Todo el producto razona en hora local española; la base guarda UTC.
+      TZ: UTC
+    ports:
+      - "5433:5432"
+    volumes:
+      - recepta-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recepta -d recepta"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: recepta-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - recepta-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  recepta-pgdata:
+  recepta-redisdata:
