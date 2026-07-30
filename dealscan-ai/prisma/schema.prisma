@@ -35,6 +35,7 @@ enum Verdict {
   CORRECTO // precio de mercado
   CARO // por encima de mercado
   ESTAFA_PROBABLE // señales de fraude dominantes
+  SIN_VALORAR // modelo no identificado: no se emite juicio sobre el precio
 }
 
 model User {

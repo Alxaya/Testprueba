@@ -326,6 +326,13 @@ describe("calibración frente a precios reales de mercado", () => {
 });
 
 describe("producto no identificado", () => {
+  it("no afirma que el precio es correcto cuando no ha valorado nada", () => {
+    const r = run("Vendo un móvil marca desconocida en buen estado por 200€");
+    // Decir "precio correcto" sin haber calculado ningún precio sería afirmar
+    // algo que el motor no sabe.
+    expect(r.verdict).toBe("SIN_VALORAR");
+  });
+
   it("no inventa un precio de mercado", () => {
     const r = run("Vendo un móvil marca desconocida en buen estado por 200€");
     expect(r.pricing.marketCents).toBe(0);
@@ -350,7 +357,7 @@ describe("estructura del informe", () => {
     );
     expect(r.engineVersion).toBe(ENGINE_VERSION);
     expect(r.pricing.marketCents).toBeGreaterThan(0);
-    expect(["CHOLLO", "CORRECTO", "CARO", "ESTAFA_PROBABLE"]).toContain(r.verdict);
+    expect(["CHOLLO", "CORRECTO", "CARO", "ESTAFA_PROBABLE", "SIN_VALORAR"]).toContain(r.verdict);
     expect(r.score).toBeGreaterThanOrEqual(1);
     expect(r.score).toBeLessThanOrEqual(100);
     expect(r.buyProbability).toBeGreaterThanOrEqual(1);
@@ -372,5 +379,48 @@ describe("estructura del informe", () => {
       expect(step.label.length).toBeGreaterThan(3);
       expect(step.detail.length).toBeGreaterThan(10);
     }
+  });
+});
+
+describe("negociación cuando el anuncio ya es un chollo", () => {
+  it("recomienda cerrar al precio pedido en lugar de regatear", () => {
+    const r = run("Vendo iPhone 15 128GB negro, como nuevo, batería 97%, con caja, cargador y factura. 430€");
+    expect(r.verdict).toBe("CHOLLO");
+    // La oferta de apertura es el propio precio pedido: no se sugiere rebajar.
+    expect(r.negotiation.openingOfferCents).toBe(r.pricing.askingCents);
+    // Y el mensaje no le cita al vendedor su propio precio como referencia
+    // de mercado, que era el error: acepta el precio explícitamente.
+    expect(r.negotiation.message).toMatch(/me encaja el precio|lo cerramos tal cual/i);
+    expect(r.negotiation.message).not.toMatch(/se están cerrando alrededor/i);
+    // Los argumentos hablan de verificar y de rapidez, no de descuentos.
+    expect(r.negotiation.arguments.join(" ")).toMatch(/no hay margen que ganar/i);
+  });
+
+  it("sigue proponiendo una rebaja cuando el precio está por encima del justo", () => {
+    const r = run("Vendo iPhone 15 128GB buen estado. 700€");
+    expect(r.negotiation.openingOfferCents).toBeLessThan(r.pricing.askingCents);
+    expect(r.negotiation.arguments.join(" ")).toMatch(/por encima de lo que vale/i);
+  });
+});
+
+describe("coherencia del texto del informe", () => {
+  it("no llama «ahorro» al descuento de un anuncio fraudulento", () => {
+    const r = run(
+      "Vendo iPhone 16 Pro 128GB precintado. 480€. Estoy en Alemania, me pagas por Bizum antes del envío. Urge vender.",
+    );
+    expect(r.verdict).toBe("ESTAFA_PROBABLE");
+    expect(r.explanation.priceReasoning).not.toMatch(/el ahorro frente al mercado/i);
+    expect(r.explanation.priceReasoning).toMatch(/señuelo/i);
+  });
+
+  it("sí lo llama ahorro cuando la compra es legítima", () => {
+    const r = run("Vendo iPhone 15 128GB como nuevo con caja y factura. 430€");
+    expect(r.explanation.priceReasoning).toMatch(/el ahorro frente al mercado/i);
+  });
+
+  it("escribe los porcentajes con coma decimal", () => {
+    const r = run("iPhone 14 Pro 256GB buen estado con caja y cargador, 620€");
+    // "46.03 %" sería incorrecto en español; debe ser "46,03 %".
+    expect(r.explanation.priceReasoning).not.toMatch(/\d+\.\d+ %/);
   });
 });

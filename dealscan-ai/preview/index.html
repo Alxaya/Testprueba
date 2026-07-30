@@ -1,0 +1,997 @@
+<title>DealScan AI — analizador de anuncios de segunda mano</title>
+
+<style>
+  /* ---------------------------------------------------------------------
+     DealScan AI — vista previa interactiva.
+
+     Tokens de color: neutros con sesgo frío hacia el acento, acento verde
+     azulado profundo (el color de la marca), y una escala semántica aparte
+     para chollo / caro / estafa que no compite con el acento.
+
+     Tipografía: sistema grotesco para el texto y pila monoespaciada para
+     TODAS las cifras y etiquetas. Un informe de tasación se lee en columnas
+     de números: la monoespaciada con `tabular-nums` es la decisión correcta
+     y evita el riesgo de una fuente web bloqueada por la CSP.
+     --------------------------------------------------------------------- */
+
+  :root {
+    --font-text: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-num: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+
+    --ground: #f7faf9;
+    --ground-deep: #eef3f2;
+    --surface: #ffffff;
+    --surface-2: #f2f6f5;
+    --line: #dde5e3;
+    --line-strong: #c3d0cd;
+    --ink: #101816;
+    --ink-2: #4a5956;
+    --ink-3: #71817e;
+
+    --accent: #0d7a68;
+    --accent-ink: #0a5c4e;
+    --accent-wash: #e2f2ee;
+    --on-accent: #ffffff;
+
+    --good: #157f4c;
+    --good-wash: #e2f3e8;
+    --warn: #a56a05;
+    --warn-wash: #faeed7;
+    --bad: #b52d2d;
+    --bad-wash: #fae5e4;
+
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 2px rgb(16 24 22 / 0.05), 0 2px 8px rgb(16 24 22 / 0.04);
+    --shadow-lg: 0 4px 24px rgb(16 24 22 / 0.09);
+
+    --step--1: 0.8125rem;
+    --step-0: 0.9375rem;
+    --step-1: 1.125rem;
+    --step-2: 1.5rem;
+    --step-3: 2rem;
+    --step-4: 2.75rem;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0f1514;
+      --ground-deep: #0a100f;
+      --surface: #161e1d;
+      --surface-2: #1d2726;
+      --line: #2a3634;
+      --line-strong: #3b4a47;
+      --ink: #eef4f3;
+      --ink-2: #a9b8b5;
+      --ink-3: #7d8c89;
+
+      --accent: #3fc9ae;
+      --accent-ink: #6fdcc5;
+      --accent-wash: #16332d;
+      --on-accent: #06211c;
+
+      --good: #4ecb85;
+      --good-wash: #14301f;
+      --warn: #e0aa4a;
+      --warn-wash: #322510;
+      --bad: #f0736f;
+      --bad-wash: #341917;
+
+      --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+      --shadow-lg: 0 4px 24px rgb(0 0 0 / 0.5);
+
+      color-scheme: dark;
+    }
+  }
+
+  /* El interruptor del visor manda sobre la preferencia del sistema, en
+     ambos sentidos: se redefinen los mismos tokens, nunca los componentes. */
+  :root[data-theme="light"] {
+    --ground: #f7faf9; --ground-deep: #eef3f2; --surface: #ffffff; --surface-2: #f2f6f5;
+    --line: #dde5e3; --line-strong: #c3d0cd;
+    --ink: #101816; --ink-2: #4a5956; --ink-3: #71817e;
+    --accent: #0d7a68; --accent-ink: #0a5c4e; --accent-wash: #e2f2ee; --on-accent: #ffffff;
+    --good: #157f4c; --good-wash: #e2f3e8; --warn: #a56a05; --warn-wash: #faeed7;
+    --bad: #b52d2d; --bad-wash: #fae5e4;
+    --shadow: 0 1px 2px rgb(16 24 22 / 0.05), 0 2px 8px rgb(16 24 22 / 0.04);
+    --shadow-lg: 0 4px 24px rgb(16 24 22 / 0.09);
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0f1514; --ground-deep: #0a100f; --surface: #161e1d; --surface-2: #1d2726;
+    --line: #2a3634; --line-strong: #3b4a47;
+    --ink: #eef4f3; --ink-2: #a9b8b5; --ink-3: #7d8c89;
+    --accent: #3fc9ae; --accent-ink: #6fdcc5; --accent-wash: #16332d; --on-accent: #06211c;
+    --good: #4ecb85; --good-wash: #14301f; --warn: #e0aa4a; --warn-wash: #322510;
+    --bad: #f0736f; --bad-wash: #341917;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 4px 24px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-text);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; line-height: 1.2; }
+  p { margin: 0; }
+  ul, ol { margin: 0; padding: 0; list-style: none; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  .eyebrow {
+    font-family: var(--font-num);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+
+  .shell { max-width: 1240px; margin: 0 auto; padding: 0 20px 72px; }
+
+  /* ------------------------------------------------------------ cabecera */
+  .top {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in oklab, var(--ground) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .top-in {
+    max-width: 1240px; margin: 0 auto; padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+    color: var(--on-accent); display: grid; place-items: center; flex: none;
+  }
+  .brand-mark svg { width: 15px; height: 15px; }
+  .brand em { font-style: normal; color: var(--accent); }
+
+  .theme-btn {
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+    border-radius: 8px; width: 34px; height: 34px; display: grid; place-items: center;
+    cursor: pointer; flex: none;
+  }
+  .theme-btn:hover { background: var(--surface-2); }
+  .theme-btn svg { width: 15px; height: 15px; }
+
+  /* ---------------------------------------------------------------- hero */
+  .hero { padding: 40px 0 26px; max-width: 60ch; }
+  .hero h1 { font-size: var(--step-4); letter-spacing: -0.035em; font-weight: 700; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { margin-top: 14px; color: var(--ink-2); font-size: var(--step-1); }
+  .hero-facts { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 18px; }
+  .hero-facts li { display: flex; align-items: baseline; gap: 7px; font-size: var(--step--1); color: var(--ink-2); }
+  .hero-facts b { font-family: var(--font-num); font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  /* --------------------------------------------------------------- aviso */
+  .disclosure {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 22px;
+  }
+  .disclosure svg { width: 17px; height: 17px; color: var(--accent); flex: none; margin-top: 2px; }
+  .disclosure p { font-size: var(--step--1); color: var(--ink-2); }
+  .disclosure strong { color: var(--ink); }
+
+  /* -------------------------------------------------------------- layout */
+  .work { display: grid; gap: 22px; align-items: start; }
+  @media (min-width: 1000px) {
+    .work { grid-template-columns: 386px minmax(0, 1fr); }
+    .console { position: sticky; top: 74px; }
+  }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+  }
+  .panel-pad { padding: 18px; }
+  @media (min-width: 640px) { .panel-pad { padding: 22px; } }
+
+  /* ------------------------------------------------------------- consola */
+  .field { display: block; margin-bottom: 14px; }
+  .field > span:first-child {
+    display: block; font-size: var(--step--1); font-weight: 600; margin-bottom: 6px;
+  }
+  .field-note { display: block; margin-top: 6px; font-size: 0.75rem; color: var(--ink-3); }
+
+  textarea, input[type="text"], select {
+    width: 100%; font: inherit; font-size: var(--step--1);
+    color: var(--ink); background: var(--ground);
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  textarea { min-height: 190px; resize: vertical; line-height: 1.5; }
+  textarea::placeholder { color: var(--ink-3); }
+  textarea:focus, input:focus, select:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-wash);
+  }
+  .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .with-unit { position: relative; }
+  .with-unit input { padding-right: 30px; }
+  .with-unit span {
+    position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-3); font-size: var(--step--1); pointer-events: none;
+  }
+
+  .samples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip {
+    font: inherit; font-size: 0.75rem; font-weight: 600;
+    padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    background: var(--surface-2); color: var(--ink-2);
+    border: 1px solid var(--line);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); }
+
+  .go {
+    width: 100%; font: inherit; font-size: var(--step-0); font-weight: 650;
+    padding: 11px 16px; border-radius: var(--radius); cursor: pointer;
+    background: var(--accent); color: var(--on-accent); border: 1px solid transparent;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .go:hover:not(:disabled) { background: var(--accent-ink); }
+  .go:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .err {
+    margin-top: 12px; padding: 10px 12px; border-radius: var(--radius);
+    background: var(--bad-wash); color: var(--bad);
+    font-size: var(--step--1); border: 1px solid color-mix(in oklab, var(--bad) 28%, transparent);
+  }
+
+  /* -------------------------------------------------------------- vacío */
+  .blank { text-align: center; padding: 64px 24px; }
+  .blank svg { width: 34px; height: 34px; color: var(--ink-3); }
+  .blank h2 { margin-top: 14px; font-size: var(--step-1); }
+  .blank p { margin-top: 7px; color: var(--ink-2); font-size: var(--step--1); max-width: 44ch; margin-inline: auto; }
+
+  /* ------------------------------------------------------------- informe */
+  .report { display: grid; gap: 16px; }
+  .report > * { animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+
+  .verdict-band {
+    padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 18px;
+    align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+  }
+  .verdict-band h2 { font-size: var(--step-3); letter-spacing: -0.03em; margin-top: 3px; }
+  .verdict-band .sub { color: var(--ink-2); font-size: var(--step--1); margin-top: 3px; }
+  .v-good { background: var(--good-wash); } .v-good h2 { color: var(--good); }
+  .v-ok   { background: var(--accent-wash); } .v-ok h2 { color: var(--accent); }
+  .v-warn { background: var(--warn-wash); } .v-warn h2 { color: var(--warn); }
+  .v-bad  { background: var(--bad-wash); } .v-bad h2 { color: var(--bad); }
+  .v-none { background: var(--surface-2); } .v-none h2 { color: var(--ink-2); }
+
+  .dial { position: relative; width: 84px; height: 84px; flex: none; }
+  .dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .dial-mid {
+    position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  }
+  .dial-mid b { display: block; font-family: var(--font-num); font-size: 1.4rem; line-height: 1; font-weight: 700; }
+  .dial-mid span { font-family: var(--font-num); font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 620px) { .metrics { grid-template-columns: repeat(4, 1fr); } }
+  .metrics > div {
+    padding: 13px 16px;
+    border-top: 1px solid var(--line); border-right: 1px solid var(--line);
+  }
+  .metrics > div:nth-child(2n) { border-right: 0; }
+  @media (min-width: 620px) {
+    .metrics > div { border-top: 0; }
+    .metrics > div:nth-child(2n) { border-right: 1px solid var(--line); }
+    .metrics > div:last-child { border-right: 0; }
+  }
+  .metrics dt { font-family: var(--font-num); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); font-weight: 600; line-height: 1.3; }
+  .metrics dd { margin: 4px 0 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--step-1); font-weight: 700; }
+
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .sec-head h3 { font-size: var(--step-0); font-weight: 650; }
+
+  .prose { color: var(--ink-2); font-size: var(--step--1); }
+  .prose + .prose { margin-top: 10px; }
+  .callout {
+    margin-top: 14px; padding: 13px 15px; border-radius: var(--radius);
+    background: var(--surface-2);
+  }
+  .callout .eyebrow { margin-bottom: 5px; }
+  .callout p { font-size: var(--step--1); color: var(--ink-2); }
+
+  .price-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  @media (min-width: 560px) { .price-grid { grid-template-columns: repeat(3, 1fr); } }
+  .price-card { padding: 13px 15px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid transparent; }
+  .price-card.lead { background: var(--accent-wash); border-color: color-mix(in oklab, var(--accent) 26%, transparent); }
+  .price-card b { display: block; margin-top: 4px; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--step-2); font-weight: 700; letter-spacing: -0.02em; }
+  .price-card.lead b { color: var(--accent); }
+  .price-card small { display: block; margin-top: 4px; font-size: 0.75rem; color: var(--ink-3); line-height: 1.4; }
+
+  /* Escala: sitúa el precio pedido sobre el rango real de mercado. */
+  .scale { margin-top: 22px; }
+  .scale-track { position: relative; height: 9px; border-radius: 999px; background: var(--surface-2); }
+  .scale-range { position: absolute; height: 100%; border-radius: 999px; background: color-mix(in oklab, var(--accent) 26%, transparent); }
+  .scale-fair { position: absolute; top: -4px; width: 2px; height: 17px; border-radius: 2px; background: var(--accent); }
+  .scale-ask {
+    position: absolute; top: -5px; width: 19px; height: 19px; border-radius: 50%;
+    transform: translateX(-50%); border: 3px solid var(--surface); box-shadow: var(--shadow-lg);
+  }
+  .scale-key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 13px; font-size: 0.75rem; color: var(--ink-2); }
+  .scale-key span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .swatch.bar { width: 2px; height: 12px; border-radius: 2px; }
+
+  .split { display: grid; gap: 10px; margin-top: 18px; }
+  @media (min-width: 560px) { .split { grid-template-columns: 1fr 1fr; } }
+  .tile { padding: 14px 16px; border-radius: var(--radius); }
+  .tile b { display: block; margin-top: 4px; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--step-2); font-weight: 700; }
+  .tile small { display: block; margin-top: 3px; font-size: 0.75rem; color: var(--ink-3); }
+  .tile.t-good { background: var(--good-wash); } .tile.t-good b { color: var(--good); }
+  .tile.t-bad { background: var(--bad-wash); } .tile.t-bad b { color: var(--bad); }
+  .tile.t-accent { background: var(--accent-wash); } .tile.t-accent b { color: var(--accent); }
+
+  .args { display: grid; gap: 9px; margin-top: 16px; }
+  .args li { display: flex; gap: 10px; font-size: var(--step--1); color: var(--ink-2); }
+  .args li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex: none; margin-top: 8px; }
+
+  .script {
+    margin: 16px 0 0; padding: 15px 17px; border-radius: var(--radius);
+    background: var(--accent-wash);
+    border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+  .script blockquote { margin: 6px 0 0; font-size: var(--step--1); color: var(--ink); }
+  .copy-btn {
+    margin-top: 11px; font: inherit; font-size: 0.75rem; font-weight: 600;
+    padding: 6px 11px; border-radius: 7px; cursor: pointer;
+    background: var(--surface); color: var(--accent);
+    border: 1px solid color-mix(in oklab, var(--accent) 34%, transparent);
+  }
+  .copy-btn:hover { background: var(--surface-2); }
+
+  .sig-group + .sig-group { margin-top: 20px; }
+  .sig-group > h4 { font-size: var(--step--1); font-weight: 650; margin-bottom: 9px; }
+  .sig { padding: 13px 15px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); }
+  .sig + .sig { margin-top: 9px; }
+  .sig-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sig-top strong { font-size: var(--step--1); font-weight: 650; }
+  .sev {
+    font-family: var(--font-num); font-size: 0.5625rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 3px 7px; border-radius: 5px; flex: none;
+  }
+  .sev-critical, .sev-high { background: var(--bad-wash); color: var(--bad); }
+  .sev-medium { background: var(--warn-wash); color: var(--warn); }
+  .sev-low { background: var(--surface); color: var(--ink-3); border: 1px solid var(--line); }
+  .sev-info { background: var(--accent-wash); color: var(--accent); }
+  .sig p { margin-top: 7px; font-size: 0.8125rem; color: var(--ink-2); }
+  .sig q {
+    display: block; margin-top: 9px; padding-left: 11px;
+    border-left: 2px solid var(--line-strong);
+    font-size: 0.75rem; color: var(--ink-3); font-style: italic;
+  }
+  .none-msg { padding: 10px 13px; border-radius: var(--radius); font-size: var(--step--1); }
+  .none-good { background: var(--good-wash); color: var(--good); }
+  .none-plain { background: var(--surface-2); color: var(--ink-2); }
+
+  .facts { display: grid; gap: 0 26px; }
+  @media (min-width: 560px) { .facts { grid-template-columns: 1fr 1fr; } }
+  .facts div {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--line);
+  }
+  .facts dt { font-size: 0.8125rem; color: var(--ink-3); }
+  .facts dd { margin: 0; font-size: var(--step--1); font-weight: 600; text-align: right; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .tag {
+    font-size: 0.75rem; font-weight: 600; padding: 4px 9px; border-radius: 999px;
+    background: var(--surface); border: 1px solid color-mix(in oklab, var(--bad) 26%, transparent);
+    color: var(--bad);
+  }
+
+  /* Los pasos SÍ son una secuencia real: la numeración informa. */
+  .steps { display: grid; gap: 13px; counter-reset: s; }
+  .steps li { display: flex; gap: 13px; }
+  .steps li::before {
+    counter-increment: s; content: counter(s);
+    width: 23px; height: 23px; border-radius: 50%; flex: none;
+    background: var(--accent-wash); color: var(--accent);
+    font-family: var(--font-num); font-size: 0.6875rem; font-weight: 700;
+    display: grid; place-items: center; margin-top: 1px;
+  }
+  .step-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .step-head strong { font-size: var(--step--1); font-weight: 650; }
+  .step-head span { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--step--1); font-weight: 700; color: var(--accent); }
+  .steps p { margin-top: 3px; font-size: 0.75rem; color: var(--ink-2); }
+
+  .caveats { margin-top: 16px; padding: 13px 15px; border-radius: var(--radius); background: var(--warn-wash); }
+  .caveats li { font-size: 0.75rem; color: var(--ink-2); }
+  .caveats li + li { margin-top: 6px; }
+
+  .prov { background: var(--surface-2); }
+  .prov li { font-size: 0.75rem; color: var(--ink-2); }
+  .prov li + li { margin-top: 7px; }
+  .prov strong { color: var(--ink); font-weight: 650; }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; font-size: 0.75rem; font-weight: 650; color: var(--accent); }
+  .ev { margin-top: 10px; display: grid; gap: 6px; }
+  .ev li { background: var(--surface); border-radius: 7px; padding: 8px 10px; font-size: 0.75rem; }
+  .ev b { font-weight: 650; }
+  .ev i { color: var(--ink-3); }
+
+  .fineprint { margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.6875rem; color: var(--ink-3); }
+
+  .footer { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .footer h2 { font-size: var(--step-1); }
+  .footer p { margin-top: 8px; color: var(--ink-2); font-size: var(--step--1); max-width: 68ch; }
+  .footer ul { margin-top: 16px; display: grid; gap: 14px; }
+  @media (min-width: 720px) { .footer ul { grid-template-columns: repeat(3, 1fr); } }
+  .footer li strong { display: block; font-size: var(--step--1); }
+  .footer li span { display: block; margin-top: 4px; font-size: 0.8125rem; color: var(--ink-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" stroke-linecap="round" />
+          <path d="M8.5 11.5l2 2 4-4.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+      DealScan<em>&nbsp;AI</em>
+    </div>
+    <button class="theme-btn" id="theme" type="button" aria-label="Cambiar tema"></button>
+  </div>
+</header>
+
+<div class="shell">
+  <section class="hero">
+    <h1>¿Ese anuncio <span>merece la pena</span>?</h1>
+    <p>
+      Pega el texto de un anuncio de segunda mano y recibe el precio real de mercado, el ahorro
+      estimado, las señales de estafa y la cantidad exacta que conviene ofrecer al vendedor.
+    </p>
+    <ul class="hero-facts">
+      <li><b id="fact-models">—</b> modelos de referencia</li>
+      <li><b id="fact-brands">—</b> marcas</li>
+      <li><b id="fact-cats">—</b> categorías</li>
+      <li><b id="fact-engine">—</b> motor de valoración</li>
+    </ul>
+  </section>
+
+  <div class="disclosure">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" stroke-linecap="round" />
+    </svg>
+    <p>
+      <strong>Esta página ejecuta el motor de valoración real</strong>, el mismo código que usa la
+      aplicación: catálogo de precios oficiales de lanzamiento, curvas de depreciación y reglas de
+      detección de fraude, compilados y ejecutándose aquí en tu navegador. Las cifras son las que
+      devolvería la aplicación desplegada. Lo que aquí no funciona, porque necesita servidor:
+      leer capturas de pantalla y enlaces (requiere el modelo de visión y la descarga del anuncio),
+      cuentas, historial guardado, exportación en PDF y suscripciones.
+    </p>
+  </div>
+
+  <div class="work">
+    <!-- ------------------------------------------------------- consola -->
+    <form class="panel panel-pad console" id="form">
+      <p class="eyebrow" style="margin-bottom: 10px">Ejemplos para probar</p>
+      <div class="samples" id="samples"></div>
+
+      <label class="field">
+        <span>Texto del anuncio</span>
+        <textarea id="text" placeholder="Vendo iPhone 14 Pro 256GB morado oscuro. Batería al 89%. Buen estado, algún arañazo mínimo en el marco, pantalla perfecta. Incluye caja original y cargador. Precio: 620€. Entrega en mano en Madrid."></textarea>
+        <span class="field-note">Cuanto más completo, más preciso: incluye precio, capacidad y estado si aparecen.</span>
+      </label>
+
+      <div class="two-up">
+        <label class="field">
+          <span>Precio pedido</span>
+          <span class="with-unit">
+            <input type="text" id="price" inputmode="decimal" placeholder="auto" />
+            <span aria-hidden="true">€</span>
+          </span>
+          <span class="field-note">Solo si falta o quieres corregirlo.</span>
+        </label>
+
+        <label class="field">
+          <span>Estado real</span>
+          <select id="condition"></select>
+          <span class="field-note">Si lo has visto, tu criterio manda.</span>
+        </label>
+      </div>
+
+      <button class="go" type="submit" id="go">Analizar anuncio</button>
+      <div id="error" hidden></div>
+    </form>
+
+    <!-- ------------------------------------------------------- informe -->
+    <div id="out">
+      <div class="panel blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M4 5h16M4 12h10M4 19h13" stroke-linecap="round" />
+          <circle cx="18" cy="17" r="3.5" /><path d="M20.5 19.5L23 22" stroke-linecap="round" />
+        </svg>
+        <h2>El informe aparecerá aquí</h2>
+        <p>
+          Pega un anuncio o pulsa uno de los ejemplos de arriba. El análisis tarda unos
+          milisegundos: todo el cálculo ocurre en tu dispositivo.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <h2>Por qué las cifras no las escribe una IA</h2>
+    <p>
+      Un modelo de lenguaje al que le pides un precio te dará uno: convincente, con formato correcto
+      y sin ninguna base. Por eso aquí la IA solo lee el anuncio —marca, modelo, capacidad, estado,
+      daños visibles— y nunca se le pide un importe. Todos los números salen de un motor determinista
+      que puedes auditar línea a línea en el apartado «cómo se ha calculado» de cada informe.
+    </p>
+    <ul>
+      <li>
+        <strong>El riesgo es un techo, no una resta</strong>
+        <span>Un anuncio con señales graves de fraude nunca saca buena nota, por muy barato que sea. Un precio de gancho es lo contrario de una oportunidad.</span>
+      </li>
+      <li>
+        <strong>Sin referencia, sin precio</strong>
+        <span>Si el modelo no está en el catálogo, el informe no inventa un valor: analiza los riesgos y te dice qué dato falta.</span>
+      </li>
+      <li>
+        <strong>Las contradicciones se muestran</strong>
+        <span>Si el vendedor dice «precintado» y describe arañazos, se valora con el estado peor y se señala la incoherencia en lugar de elegir en silencio.</span>
+      </li>
+    </ul>
+    <p class="fineprint">
+      Informe orientativo basado en la información del anuncio y en precios oficiales de lanzamiento
+      de los fabricantes. No sustituye la comprobación presencial del producto ni constituye
+      asesoramiento legal o financiero. Verifica siempre el artículo antes de pagar.
+    </p>
+  </footer>
+</div>
+
+<script>"use strict";(()=>{var A="PVP oficial de lanzamiento en Espa\xF1a (fabricante), IVA incl.",X="PVP oficial de lanzamiento en la UE (fabricante), IVA incl.",p=e=>{let n=[{gb:e,deltaCents:0}],a=0,r=e;for(;r<1024;)r*=2,a+=r>=1024?24e3:12e3,n.push({gb:r,deltaCents:a});return n},i=(e,n=2)=>{let a=[{gb:e,deltaCents:0}],r=0,t=e;for(let o=0;o<n;o++)t*=2,r+=7e3,a.push({gb:t,deltaCents:r});return a},g=e=>[{gb:e,deltaCents:0}],ve=(e,n)=>`${e} ${n}`.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu,"").replace(/\+/g," plus").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),P=(e,n)=>e.map(a=>({...a,slug:a.slug??ve(a.brand,a.model),source:a.source??n})),xe=[{category:"phone",brand:"Apple",model:"iPhone 11",releaseYear:2019,msrpCents:80900,storageTiers:p(64),aliases:["iphone 11"]},{category:"phone",brand:"Apple",model:"iPhone 11 Pro",releaseYear:2019,msrpCents:118900,storageTiers:p(64),aliases:["iphone 11 pro"]},{category:"phone",brand:"Apple",model:"iPhone 12 mini",releaseYear:2020,msrpCents:80900,storageTiers:p(64),aliases:["iphone 12 mini"]},{category:"phone",brand:"Apple",model:"iPhone 12",releaseYear:2020,msrpCents:90900,storageTiers:p(64),aliases:["iphone 12"]},{category:"phone",brand:"Apple",model:"iPhone 12 Pro",releaseYear:2020,msrpCents:115900,storageTiers:p(128),aliases:["iphone 12 pro"]},{category:"phone",brand:"Apple",model:"iPhone 12 Pro Max",releaseYear:2020,msrpCents:125900,storageTiers:p(128),aliases:["iphone 12 pro max"]},{category:"phone",brand:"Apple",model:"iPhone 13 mini",releaseYear:2021,msrpCents:80900,storageTiers:p(128),aliases:["iphone 13 mini"]},{category:"phone",brand:"Apple",model:"iPhone 13",releaseYear:2021,msrpCents:90900,storageTiers:p(128),aliases:["iphone 13"]},{category:"phone",brand:"Apple",model:"iPhone 13 Pro",releaseYear:2021,msrpCents:115900,storageTiers:p(128),aliases:["iphone 13 pro"]},{category:"phone",brand:"Apple",model:"iPhone 13 Pro Max",releaseYear:2021,msrpCents:125900,storageTiers:p(128),aliases:["iphone 13 pro max"]},{category:"phone",brand:"Apple",model:"iPhone SE (3\xAA gen)",releaseYear:2022,msrpCents:55900,storageTiers:p(64),aliases:["iphone se 2022","iphone se 3","iphone se tercera"]},{category:"phone",brand:"Apple",model:"iPhone 14",releaseYear:2022,msrpCents:100900,storageTiers:p(128),aliases:["iphone 14"]},{category:"phone",brand:"Apple",model:"iPhone 14 Plus",releaseYear:2022,msrpCents:115900,storageTiers:p(128),aliases:["iphone 14 plus"]},{category:"phone",brand:"Apple",model:"iPhone 14 Pro",releaseYear:2022,msrpCents:131900,storageTiers:p(128),aliases:["iphone 14 pro"]},{category:"phone",brand:"Apple",model:"iPhone 14 Pro Max",releaseYear:2022,msrpCents:146900,storageTiers:p(128),aliases:["iphone 14 pro max"]},{category:"phone",brand:"Apple",model:"iPhone 15",releaseYear:2023,msrpCents:95900,storageTiers:p(128),aliases:["iphone 15"]},{category:"phone",brand:"Apple",model:"iPhone 15 Plus",releaseYear:2023,msrpCents:110900,storageTiers:p(128),aliases:["iphone 15 plus"]},{category:"phone",brand:"Apple",model:"iPhone 15 Pro",releaseYear:2023,msrpCents:121900,storageTiers:p(128),aliases:["iphone 15 pro"]},{category:"phone",brand:"Apple",model:"iPhone 15 Pro Max",releaseYear:2023,msrpCents:146900,storageTiers:p(256),aliases:["iphone 15 pro max"]},{category:"phone",brand:"Apple",model:"iPhone 16",releaseYear:2024,msrpCents:95900,storageTiers:p(128),aliases:["iphone 16"]},{category:"phone",brand:"Apple",model:"iPhone 16 Plus",releaseYear:2024,msrpCents:110900,storageTiers:p(128),aliases:["iphone 16 plus"]},{category:"phone",brand:"Apple",model:"iPhone 16 Pro",releaseYear:2024,msrpCents:121900,storageTiers:p(128),aliases:["iphone 16 pro"]},{category:"phone",brand:"Apple",model:"iPhone 16 Pro Max",releaseYear:2024,msrpCents:146900,storageTiers:p(256),aliases:["iphone 16 pro max"]},{category:"phone",brand:"Apple",model:"iPhone 16e",releaseYear:2025,msrpCents:70900,storageTiers:p(128),aliases:["iphone 16e"]},{category:"phone",brand:"Apple",model:"iPhone 17",releaseYear:2025,msrpCents:95900,storageTiers:p(256),aliases:["iphone 17"]},{category:"phone",brand:"Apple",model:"iPhone Air",releaseYear:2025,msrpCents:121900,storageTiers:p(256),aliases:["iphone air"]},{category:"phone",brand:"Apple",model:"iPhone 17 Pro",releaseYear:2025,msrpCents:131900,storageTiers:p(256),aliases:["iphone 17 pro"]},{category:"phone",brand:"Apple",model:"iPhone 17 Pro Max",releaseYear:2025,msrpCents:146900,storageTiers:p(256),aliases:["iphone 17 pro max"]}],Ae=[{category:"phone",brand:"Samsung",model:"Galaxy S21",releaseYear:2021,msrpCents:84900,storageTiers:i(128,1),aliases:["galaxy s21","s21"]},{category:"phone",brand:"Samsung",model:"Galaxy S21+",releaseYear:2021,msrpCents:105900,storageTiers:i(128,1),aliases:["galaxy s21 plus","s21+"]},{category:"phone",brand:"Samsung",model:"Galaxy S21 Ultra",releaseYear:2021,msrpCents:125900,storageTiers:i(128,2),aliases:["galaxy s21 ultra","s21 ultra"]},{category:"phone",brand:"Samsung",model:"Galaxy S22",releaseYear:2022,msrpCents:87900,storageTiers:i(128,1),aliases:["galaxy s22","s22"]},{category:"phone",brand:"Samsung",model:"Galaxy S22+",releaseYear:2022,msrpCents:107900,storageTiers:i(128,1),aliases:["galaxy s22 plus","s22+"]},{category:"phone",brand:"Samsung",model:"Galaxy S22 Ultra",releaseYear:2022,msrpCents:125900,storageTiers:i(128,2),aliases:["galaxy s22 ultra","s22 ultra"]},{category:"phone",brand:"Samsung",model:"Galaxy S23",releaseYear:2023,msrpCents:95900,storageTiers:i(128,1),aliases:["galaxy s23","s23"]},{category:"phone",brand:"Samsung",model:"Galaxy S23+",releaseYear:2023,msrpCents:120900,storageTiers:i(256,1),aliases:["galaxy s23 plus","s23+"]},{category:"phone",brand:"Samsung",model:"Galaxy S23 Ultra",releaseYear:2023,msrpCents:143900,storageTiers:i(256,2),aliases:["galaxy s23 ultra","s23 ultra"]},{category:"phone",brand:"Samsung",model:"Galaxy S24",releaseYear:2024,msrpCents:90900,storageTiers:i(128,1),aliases:["galaxy s24","s24"]},{category:"phone",brand:"Samsung",model:"Galaxy S24+",releaseYear:2024,msrpCents:115900,storageTiers:i(256,1),aliases:["galaxy s24 plus","s24+"]},{category:"phone",brand:"Samsung",model:"Galaxy S24 Ultra",releaseYear:2024,msrpCents:145900,storageTiers:i(256,2),aliases:["galaxy s24 ultra","s24 ultra"]},{category:"phone",brand:"Samsung",model:"Galaxy S25",releaseYear:2025,msrpCents:90900,storageTiers:i(128,1),aliases:["galaxy s25","s25"]},{category:"phone",brand:"Samsung",model:"Galaxy S25+",releaseYear:2025,msrpCents:115900,storageTiers:i(256,1),aliases:["galaxy s25 plus","s25+"]},{category:"phone",brand:"Samsung",model:"Galaxy S25 Ultra",releaseYear:2025,msrpCents:145900,storageTiers:i(256,2),aliases:["galaxy s25 ultra","s25 ultra"]},{category:"phone",brand:"Samsung",model:"Galaxy A34",releaseYear:2023,msrpCents:39900,storageTiers:i(128,1),aliases:["galaxy a34","a34"]},{category:"phone",brand:"Samsung",model:"Galaxy A54",releaseYear:2023,msrpCents:48900,storageTiers:i(128,1),aliases:["galaxy a54","a54"]},{category:"phone",brand:"Samsung",model:"Galaxy A55",releaseYear:2024,msrpCents:47900,storageTiers:i(128,1),aliases:["galaxy a55","a55"]},{category:"phone",brand:"Samsung",model:"Galaxy Z Flip5",releaseYear:2023,msrpCents:119900,storageTiers:i(256,1),aliases:["z flip5","zflip 5","galaxy z flip 5"]},{category:"phone",brand:"Samsung",model:"Galaxy Z Fold5",releaseYear:2023,msrpCents:189900,storageTiers:i(256,1),aliases:["z fold5","zfold 5","galaxy z fold 5"]},{category:"phone",brand:"Samsung",model:"Galaxy Z Flip6",releaseYear:2024,msrpCents:119900,storageTiers:i(256,1),aliases:["z flip6","galaxy z flip 6"]},{category:"phone",brand:"Samsung",model:"Galaxy Z Fold6",releaseYear:2024,msrpCents:199900,storageTiers:i(256,1),aliases:["z fold6","galaxy z fold 6"]}],Pe=[{category:"phone",brand:"Xiaomi",model:"Redmi Note 12",releaseYear:2023,msrpCents:24900,storageTiers:i(128,1),aliases:["redmi note 12"]},{category:"phone",brand:"Xiaomi",model:"Redmi Note 13 Pro",releaseYear:2024,msrpCents:39900,storageTiers:i(256,1),aliases:["redmi note 13 pro"]},{category:"phone",brand:"Xiaomi",model:"Redmi Note 14 Pro",releaseYear:2025,msrpCents:39900,storageTiers:i(256,1),aliases:["redmi note 14 pro"]},{category:"phone",brand:"Xiaomi",model:"Poco X6 Pro",releaseYear:2024,msrpCents:36900,storageTiers:i(256,1),aliases:["poco x6 pro"]},{category:"phone",brand:"Xiaomi",model:"Xiaomi 13",releaseYear:2023,msrpCents:99900,storageTiers:i(256,1),aliases:["xiaomi 13"]},{category:"phone",brand:"Xiaomi",model:"Xiaomi 13T",releaseYear:2023,msrpCents:64900,storageTiers:i(256,1),aliases:["xiaomi 13t"]},{category:"phone",brand:"Xiaomi",model:"Xiaomi 13T Pro",releaseYear:2023,msrpCents:89900,storageTiers:i(512,1),aliases:["xiaomi 13t pro"]},{category:"phone",brand:"Xiaomi",model:"Xiaomi 14",releaseYear:2024,msrpCents:99900,storageTiers:i(256,1),aliases:["xiaomi 14"],source:X},{category:"phone",brand:"Xiaomi",model:"Xiaomi 14 Ultra",releaseYear:2024,msrpCents:149900,storageTiers:g(512),aliases:["xiaomi 14 ultra"],source:X},{category:"phone",brand:"Xiaomi",model:"Xiaomi 15",releaseYear:2025,msrpCents:109900,storageTiers:i(256,1),aliases:["xiaomi 15"],source:X}],Se=[{category:"phone",brand:"Google",model:"Pixel 6",releaseYear:2021,msrpCents:64900,storageTiers:i(128,1),aliases:["pixel 6"]},{category:"phone",brand:"Google",model:"Pixel 6a",releaseYear:2022,msrpCents:45900,storageTiers:g(128),aliases:["pixel 6a"]},{category:"phone",brand:"Google",model:"Pixel 7",releaseYear:2022,msrpCents:64900,storageTiers:i(128,1),aliases:["pixel 7"]},{category:"phone",brand:"Google",model:"Pixel 7 Pro",releaseYear:2022,msrpCents:89900,storageTiers:i(128,2),aliases:["pixel 7 pro"]},{category:"phone",brand:"Google",model:"Pixel 7a",releaseYear:2023,msrpCents:50900,storageTiers:g(128),aliases:["pixel 7a"]},{category:"phone",brand:"Google",model:"Pixel 8",releaseYear:2023,msrpCents:79900,storageTiers:i(128,1),aliases:["pixel 8"]},{category:"phone",brand:"Google",model:"Pixel 8 Pro",releaseYear:2023,msrpCents:109900,storageTiers:i(128,2),aliases:["pixel 8 pro"]},{category:"phone",brand:"Google",model:"Pixel 8a",releaseYear:2024,msrpCents:54900,storageTiers:i(128,1),aliases:["pixel 8a"]},{category:"phone",brand:"Google",model:"Pixel 9",releaseYear:2024,msrpCents:89900,storageTiers:i(128,1),aliases:["pixel 9"]},{category:"phone",brand:"Google",model:"Pixel 9 Pro",releaseYear:2024,msrpCents:109900,storageTiers:i(128,2),aliases:["pixel 9 pro"]},{category:"phone",brand:"Google",model:"Pixel 9a",releaseYear:2025,msrpCents:54900,storageTiers:i(128,1),aliases:["pixel 9a"]},{category:"phone",brand:"Google",model:"Pixel 10",releaseYear:2025,msrpCents:89900,storageTiers:i(128,1),aliases:["pixel 10"]}],ke=[{category:"phone",brand:"OnePlus",model:"OnePlus 9",releaseYear:2021,msrpCents:71900,storageTiers:i(128,1),aliases:["oneplus 9","one plus 9"]},{category:"phone",brand:"OnePlus",model:"OnePlus 10 Pro",releaseYear:2022,msrpCents:89900,storageTiers:i(128,1),aliases:["oneplus 10 pro"]},{category:"phone",brand:"OnePlus",model:"OnePlus Nord 3",releaseYear:2023,msrpCents:49900,storageTiers:i(128,1),aliases:["oneplus nord 3","nord 3"]},{category:"phone",brand:"OnePlus",model:"OnePlus 11",releaseYear:2023,msrpCents:84900,storageTiers:i(256,1),aliases:["oneplus 11"]},{category:"phone",brand:"OnePlus",model:"OnePlus 12",releaseYear:2024,msrpCents:94900,storageTiers:i(256,1),aliases:["oneplus 12"]},{category:"phone",brand:"OnePlus",model:"OnePlus 12R",releaseYear:2024,msrpCents:64900,storageTiers:i(256,1),aliases:["oneplus 12r"]},{category:"phone",brand:"OnePlus",model:"OnePlus 13",releaseYear:2025,msrpCents:102900,storageTiers:i(256,1),aliases:["oneplus 13"]}],Te=[{category:"tablet",brand:"Apple",model:"iPad (9\xAA gen)",releaseYear:2021,msrpCents:37900,storageTiers:[{gb:64,deltaCents:0},{gb:256,deltaCents:16e3}],aliases:["ipad 9","ipad 9a","ipad novena"]},{category:"tablet",brand:"Apple",model:"iPad (10\xAA gen)",releaseYear:2022,msrpCents:58900,storageTiers:[{gb:64,deltaCents:0},{gb:256,deltaCents:16e3}],aliases:["ipad 10","ipad 10a","ipad decima"]},{category:"tablet",brand:"Apple",model:"iPad (11\xAA gen)",releaseYear:2025,msrpCents:40900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:24e3}],aliases:["ipad 11","ipad 11a"]},{category:"tablet",brand:"Apple",model:"iPad Air (4\xAA gen)",releaseYear:2020,msrpCents:64900,storageTiers:[{gb:64,deltaCents:0},{gb:256,deltaCents:16e3}],aliases:["ipad air 4"]},{category:"tablet",brand:"Apple",model:"iPad Air (5\xAA gen)",releaseYear:2022,msrpCents:78900,storageTiers:[{gb:64,deltaCents:0},{gb:256,deltaCents:16e3}],aliases:["ipad air 5","ipad air m1"]},{category:"tablet",brand:"Apple",model:'iPad Air 11" (M2)',releaseYear:2024,msrpCents:71900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3}],aliases:["ipad air m2","ipad air 11 m2"]},{category:"tablet",brand:"Apple",model:'iPad Air 11" (M3)',releaseYear:2025,msrpCents:71900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3}],aliases:["ipad air m3","ipad air 11 m3"]},{category:"tablet",brand:"Apple",model:"iPad mini (6\xAA gen)",releaseYear:2021,msrpCents:54900,storageTiers:[{gb:64,deltaCents:0},{gb:256,deltaCents:16e3}],aliases:["ipad mini 6"]},{category:"tablet",brand:"Apple",model:"iPad mini (A17 Pro)",releaseYear:2024,msrpCents:60900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3}],aliases:["ipad mini 7","ipad mini a17"]},{category:"tablet",brand:"Apple",model:'iPad Pro 11" (M1)',releaseYear:2021,msrpCents:89900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3},{gb:1024,deltaCents:72e3}],aliases:["ipad pro 11 m1"]},{category:"tablet",brand:"Apple",model:'iPad Pro 11" (M2)',releaseYear:2022,msrpCents:104900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3},{gb:1024,deltaCents:72e3}],aliases:["ipad pro 11 m2"]},{category:"tablet",brand:"Apple",model:'iPad Pro 11" (M4)',releaseYear:2024,msrpCents:121900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:24e3},{gb:1024,deltaCents:6e4}],aliases:["ipad pro 11 m4"]},{category:"tablet",brand:"Apple",model:'iPad Pro 12.9" (M2)',releaseYear:2022,msrpCents:144900,storageTiers:[{gb:128,deltaCents:0},{gb:256,deltaCents:12e3},{gb:512,deltaCents:36e3},{gb:1024,deltaCents:72e3}],aliases:["ipad pro 12.9 m2","ipad pro 12,9 m2"]},{category:"tablet",brand:"Apple",model:'iPad Pro 13" (M4)',releaseYear:2024,msrpCents:156900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:24e3},{gb:1024,deltaCents:6e4}],aliases:["ipad pro 13 m4"]}],we=[{category:"tablet",brand:"Samsung",model:"Galaxy Tab S8",releaseYear:2022,msrpCents:74900,storageTiers:i(128,1),aliases:["galaxy tab s8","tab s8"]},{category:"tablet",brand:"Samsung",model:"Galaxy Tab S9",releaseYear:2023,msrpCents:89900,storageTiers:i(128,1),aliases:["galaxy tab s9","tab s9"]},{category:"tablet",brand:"Samsung",model:"Galaxy Tab S10+",releaseYear:2024,msrpCents:121900,storageTiers:i(256,1),aliases:["galaxy tab s10 plus","tab s10+"]},{category:"tablet",brand:"Samsung",model:"Galaxy Tab A9+",releaseYear:2023,msrpCents:24900,storageTiers:i(64,1),aliases:["galaxy tab a9 plus","tab a9+"]},{category:"tablet",brand:"Xiaomi",model:"Xiaomi Pad 6",releaseYear:2023,msrpCents:39900,storageTiers:i(128,1),aliases:["xiaomi pad 6"]},{category:"tablet",brand:"Lenovo",model:"Tab P11",releaseYear:2021,msrpCents:29900,storageTiers:i(64,1),aliases:["lenovo tab p11","tab p11"]}],Ee=[{category:"laptop",brand:"Apple",model:"MacBook Air 13 (M1)",releaseYear:2020,msrpCents:112900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:23e3},{gb:1024,deltaCents:46e3}],aliases:["macbook air m1"]},{category:"laptop",brand:"Apple",model:"MacBook Air 13 (M2)",releaseYear:2022,msrpCents:151900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:23e3},{gb:1024,deltaCents:46e3}],aliases:["macbook air m2"]},{category:"laptop",brand:"Apple",model:"MacBook Air 13 (M3)",releaseYear:2024,msrpCents:129900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:23e3},{gb:1024,deltaCents:46e3}],aliases:["macbook air m3"]},{category:"laptop",brand:"Apple",model:"MacBook Air 13 (M4)",releaseYear:2025,msrpCents:119900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:23e3},{gb:1024,deltaCents:46e3}],aliases:["macbook air m4"]},{category:"laptop",brand:"Apple",model:"MacBook Pro 13 (M1)",releaseYear:2020,msrpCents:144900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:23e3}],aliases:["macbook pro 13 m1"]},{category:"laptop",brand:"Apple",model:"MacBook Pro 14 (M1 Pro)",releaseYear:2021,msrpCents:244900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:46e3}],aliases:["macbook pro 14 m1 pro"]},{category:"laptop",brand:"Apple",model:"MacBook Pro 14 (M3)",releaseYear:2023,msrpCents:194900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:46e3}],aliases:["macbook pro 14 m3"]},{category:"laptop",brand:"Apple",model:"MacBook Pro 14 (M4)",releaseYear:2024,msrpCents:184900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:46e3}],aliases:["macbook pro 14 m4"]},{category:"laptop",brand:"Apple",model:"MacBook Pro 16 (M3 Pro)",releaseYear:2023,msrpCents:309900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:46e3}],aliases:["macbook pro 16 m3 pro"]}],Ye=[{category:"laptop",brand:"Dell",model:"XPS 13 (9315)",releaseYear:2022,msrpCents:139900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:2e4}],aliases:["dell xps 13","xps 13"]},{category:"laptop",brand:"Lenovo",model:"ThinkPad X1 Carbon Gen 11",releaseYear:2023,msrpCents:189900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:2e4}],aliases:["thinkpad x1 carbon","x1 carbon"]},{category:"laptop",brand:"Lenovo",model:"IdeaPad 3 15",releaseYear:2021,msrpCents:54900,storageTiers:[{gb:256,deltaCents:0},{gb:512,deltaCents:8e3}],aliases:["ideapad 3"]},{category:"laptop",brand:"HP",model:"Pavilion 15",releaseYear:2022,msrpCents:79900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:12e3}],aliases:["hp pavilion 15","pavilion 15"]},{category:"laptop",brand:"Asus",model:"Vivobook 15",releaseYear:2022,msrpCents:64900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:12e3}],aliases:["vivobook 15"]},{category:"laptop",brand:"Asus",model:"ROG Zephyrus G14",releaseYear:2023,msrpCents:189900,storageTiers:[{gb:1024,deltaCents:0}],aliases:["rog zephyrus g14","zephyrus g14"]},{category:"laptop",brand:"Acer",model:"Aspire 5",releaseYear:2022,msrpCents:69900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:12e3}],aliases:["acer aspire 5","aspire 5"]},{category:"laptop",brand:"MSI",model:"Katana 15",releaseYear:2023,msrpCents:119900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:15e3}],aliases:["msi katana 15","katana 15"]},{category:"laptop",brand:"Huawei",model:"MateBook D15",releaseYear:2021,msrpCents:69900,storageTiers:[{gb:512,deltaCents:0}],aliases:["matebook d15"]}],Re=[{category:"watch",brand:"Apple",model:"Apple Watch Series 7",releaseYear:2021,msrpCents:42900,storageTiers:g(32),aliases:["apple watch series 7","watch series 7","apple watch s7"]},{category:"watch",brand:"Apple",model:"Apple Watch SE (2\xAA gen)",releaseYear:2022,msrpCents:29900,storageTiers:g(32),aliases:["apple watch se 2","watch se 2022"]},{category:"watch",brand:"Apple",model:"Apple Watch Series 8",releaseYear:2022,msrpCents:49900,storageTiers:g(32),aliases:["apple watch series 8","apple watch s8"]},{category:"watch",brand:"Apple",model:"Apple Watch Ultra",releaseYear:2022,msrpCents:99900,storageTiers:g(32),aliases:["apple watch ultra"]},{category:"watch",brand:"Apple",model:"Apple Watch Series 9",releaseYear:2023,msrpCents:44900,storageTiers:g(64),aliases:["apple watch series 9","apple watch s9"]},{category:"watch",brand:"Apple",model:"Apple Watch Ultra 2",releaseYear:2023,msrpCents:89900,storageTiers:g(64),aliases:["apple watch ultra 2"]},{category:"watch",brand:"Apple",model:"Apple Watch Series 10",releaseYear:2024,msrpCents:44900,storageTiers:g(64),aliases:["apple watch series 10","apple watch s10"]},{category:"watch",brand:"Apple",model:"Apple Watch Series 11",releaseYear:2025,msrpCents:44900,storageTiers:g(64),aliases:["apple watch series 11","apple watch s11"]},{category:"watch",brand:"Samsung",model:"Galaxy Watch6",releaseYear:2023,msrpCents:31900,storageTiers:g(16),aliases:["galaxy watch6","galaxy watch 6"]},{category:"watch",brand:"Samsung",model:"Galaxy Watch7",releaseYear:2024,msrpCents:31900,storageTiers:g(32),aliases:["galaxy watch7","galaxy watch 7"]}],$e=[{category:"console",brand:"Sony",model:"PlayStation 4 Pro",releaseYear:2016,msrpCents:39900,storageTiers:g(1024),aliases:["ps4 pro","playstation 4 pro"]},{category:"console",brand:"Sony",model:"PlayStation 5",releaseYear:2020,msrpCents:49900,storageTiers:g(825),aliases:["ps5","playstation 5"]},{category:"console",brand:"Sony",model:"PlayStation 5 Digital",releaseYear:2020,msrpCents:39900,storageTiers:g(825),aliases:["ps5 digital","ps5 edicion digital"]},{category:"console",brand:"Sony",model:"PlayStation 5 Slim",releaseYear:2023,msrpCents:54900,storageTiers:g(1024),aliases:["ps5 slim"]},{category:"console",brand:"Sony",model:"PlayStation 5 Pro",releaseYear:2024,msrpCents:79900,storageTiers:g(2048),aliases:["ps5 pro"]},{category:"console",brand:"Microsoft",model:"Xbox Series S",releaseYear:2020,msrpCents:29900,storageTiers:g(512),aliases:["xbox series s"]},{category:"console",brand:"Microsoft",model:"Xbox Series X",releaseYear:2020,msrpCents:49900,storageTiers:g(1024),aliases:["xbox series x"]},{category:"console",brand:"Nintendo",model:"Switch",releaseYear:2017,msrpCents:32900,storageTiers:g(32),aliases:["nintendo switch"]},{category:"console",brand:"Nintendo",model:"Switch Lite",releaseYear:2019,msrpCents:21900,storageTiers:g(32),aliases:["switch lite"]},{category:"console",brand:"Nintendo",model:"Switch OLED",releaseYear:2021,msrpCents:34900,storageTiers:g(64),aliases:["switch oled"]},{category:"console",brand:"Nintendo",model:"Switch 2",releaseYear:2025,msrpCents:46900,storageTiers:g(256),aliases:["switch 2","nintendo switch 2"]},{category:"console",brand:"Valve",model:"Steam Deck OLED",releaseYear:2023,msrpCents:56900,storageTiers:[{gb:512,deltaCents:0},{gb:1024,deltaCents:1e4}],aliases:["steam deck oled"]}],q=[...P(xe,A),...P(Ae,A),...P(Pe,A),...P(Se,A),...P(ke,A),...P(Te,A),...P(we,A),...P(Ee,A),...P(Ye,A),...P(Re,A),...P($e,A)],W=new Map(q.map(e=>[e.slug,e])),ba=[...new Set(q.map(e=>e.brand))].sort();function se(e,n){if(n==null)return{cents:e.msrpCents,matchedGb:e.storageTiers[0]?.gb??null};let a=e.storageTiers.find(o=>o.gb===n);if(a)return{cents:e.msrpCents+a.deltaCents,matchedGb:a.gb};let r=[...e.storageTiers].sort((o,s)=>o.gb-s.gb),t=r[0];for(let o of r)o.gb<=n&&(t=o);return{cents:e.msrpCents+t.deltaCents,matchedGb:t.gb}}function Z(e){return e.replace(/\B(?=(\d{3})+(?!\d))/g,".")}function M(e,n={}){let a=n.decimals??0,r=e<0,t=Math.abs(e),o;if(a===2){let l=Math.floor(t/100),d=(t%100).toString().padStart(2,"0");o=`${Z(String(l))},${d}`}else o=Z(String(Math.round(t/100)));return`${r?"\u2212":n.sign&&t>0?"+":""}${o} \u20AC`}function I(e,n=0){let a=e.toFixed(n),[r="0",t]=a.split("."),o=Z(r.replace("-",""));return`${e<0?"\u2212":""}${o}${t?`,${t}`:""} %`}function h(e){return e.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu,"").replace(/\s+/g," ").trim()}function S(e,n,a){let r=Math.max(0,n-40),t=Math.min(e.length,n+a+40);return(r>0?"\u2026":"")+e.slice(r,t).trim()+(t<e.length?"\u2026":"")}var Oe=/\b(sin|no incluye|no tiene|no lleva|no hay|no viene con|falta[n]?|ning[uú]n[ao]?|carece de)\b/g,qe=/[.;!?¡¿]|\bpero\b|\bincluye\b|\bcon\b|\btiene\b|\baunque\b|\bs[ií] que\b|,(?!\s*(?:ni|y|o)\b)/;function ie(e){let n=[],a=new RegExp(Oe.source,"g"),r;for(;(r=a.exec(e))!==null;){let t=r.index+r[0].length,o=e.slice(t),s=qe.exec(o),l=t+Math.min(s?s.index:60,60);n.push([r.index,l])}return n}function le(e,n){return e.some(([a,r])=>n>=a&&n<=r)}function J(e){let n=e.replace(/\s| /g,"");if(!/\d/.test(n))return null;let a=n.lastIndexOf(","),r=n.lastIndexOf(".");a>-1&&r>-1?a>r?n=n.replace(/\./g,"").replace(",","."):n=n.replace(/,/g,""):a>-1?n=n.length-a-1===3?n.replace(/,/g,""):n.replace(",","."):r>-1&&(n=n.length-r-1===3?n.replace(/\./g,""):n);let t=Number.parseFloat(n);return!Number.isFinite(t)||t<=0?null:Math.round(t*100)}var Me=[/(?:precio|pvp|vendo\s+por|lo\s+vendo\s+por|pido)\s*[:\-]?\s*([\d.,]+)\s*(?:€|eur|euros?)?/gi,/([\d.,]+)\s*(?:€|eur\b|euros?)/gi,/(?:€|eur)\s*([\d.,]+)/gi];function _e(e){let n=[];if(Me.forEach((r,t)=>{let o=new RegExp(r.source,r.flags),s;for(;(s=o.exec(e))!==null;){let l=s[1];if(!l)continue;let d=J(l);if(d==null||d<1e3||d>1e7)continue;let m=h(e.slice(Math.max(0,s.index-30),s.index));/(env[ií]o|portes|gastos|comisi[oó]n|garant[ií]a de|financia)/.test(m)||n.push({cents:d,quote:S(e,s.index,s[0].length),index:s.index,priority:t})}}),n.length===0)return null;n.sort((r,t)=>r.priority-t.priority||r.index-t.index);let a=n[0];return{cents:a.cents,quote:a.quote}}function Le(e){let n=h(e),a=null;for(let r of q){let t=[h(`${r.brand} ${r.model}`),h(r.model),...r.aliases.map(h)];for(let o of t){if(o.length<3)continue;let l=new RegExp(`(?<![a-z0-9])${Ne(o)}(?![a-z0-9])`).exec(n);l&&(!a||o.length>a.alias.length)&&(a={ref:r,alias:o,index:l.index})}}return a?{reference:a.ref,matchedAlias:a.alias,quote:S(n,a.index,a.alias.length)}:null}function Ne(e){return e.replace(/[.*+?^${}()|[\]\\]/g,"\\/*__ENGINE__*/")}var Ge=[{brand:"Apple",category:"phone",patterns:/\biphone\b/},{brand:"Apple",category:"tablet",patterns:/\bipad\b/},{brand:"Apple",category:"laptop",patterns:/\bmacbook\b/},{brand:"Apple",category:"watch",patterns:/\bapple watch\b/},{brand:"Samsung",category:"phone",patterns:/\b(galaxy s\d|galaxy a\d|galaxy z)\b/},{brand:"Samsung",category:"tablet",patterns:/\bgalaxy tab\b/},{brand:"Samsung",category:"watch",patterns:/\bgalaxy watch\b/},{brand:"Xiaomi",category:"phone",patterns:/\b(xiaomi|redmi|poco)\b/},{brand:"Google",category:"phone",patterns:/\bpixel\b/},{brand:"OnePlus",category:"phone",patterns:/\bone\s?plus\b/},{brand:"Sony",category:"console",patterns:/\b(ps4|ps5|playstation)\b/},{brand:"Microsoft",category:"console",patterns:/\bxbox\b/},{brand:"Nintendo",category:"console",patterns:/\b(switch|nintendo)\b/},{brand:"Valve",category:"console",patterns:/\bsteam deck\b/},{brand:"Dell",category:"laptop",patterns:/\bdell\b/},{brand:"Lenovo",category:"laptop",patterns:/\b(lenovo|thinkpad|ideapad)\b/},{brand:"HP",category:"laptop",patterns:/\b(hp|pavilion|omen|envy)\b/},{brand:"Asus",category:"laptop",patterns:/\b(asus|vivobook|zenbook|rog)\b/},{brand:"Acer",category:"laptop",patterns:/\b(acer|aspire|nitro)\b/},{brand:"MSI",category:"laptop",patterns:/\bmsi\b/},{brand:"Huawei",category:"laptop",patterns:/\bmatebook\b/}];function Ie(e){let n=h(e);for(let a of Ge)if(a.patterns.test(n))return{brand:a.brand,category:a.category};return null}function je(e){let n=/(\d{2,4})\s?(gb|g\b|tb)\b/gi,a,r=[];for(;(a=n.exec(e))!==null;){let t=Number.parseInt(a[1],10),s=a[2].toLowerCase()==="tb"?t*1024:t;if(![16,32,64,128,256,512,825,1024,2048,4096].includes(s))continue;let l=h(e.slice(a.index+a[0].length,a.index+a[0].length+15));/^\s*(de\s+)?ram/.test(l)||r.push({gb:s,quote:S(e,a.index,a[0].length)})}return r.length===0?null:(r.sort((t,o)=>o.gb-t.gb),r[0])}var De=[{key:"black",label:"Negro",patterns:/\b(negro|black|space black|negro espacial|medianoche|midnight|grafito|graphite)\b/},{key:"white",label:"Blanco",patterns:/\b(blanco|white|starlight|blanco estrella|plata|silver)\b/},{key:"blue",label:"Azul",patterns:/\b(azul|blue|sierra blue|azul alpino|pacific blue)\b/},{key:"green",label:"Verde",patterns:/\b(verde|green|alpine green)\b/},{key:"red",label:"Rojo",patterns:/\b(rojo|red|product red)\b/},{key:"purple",label:"Morado",patterns:/\b(morado|purpura|violeta|purple|lila|lavanda)\b/},{key:"pink",label:"Rosa",patterns:/\b(rosa|pink)\b/},{key:"yellow",label:"Amarillo",patterns:/\b(amarillo|yellow)\b/},{key:"gold",label:"Oro",patterns:/\b(oro|dorado|gold)\b/},{key:"titanium",label:"Titanio",patterns:/\b(titanio|titanium|desert titanium|titanio natural)\b/},{key:"gray",label:"Gris",patterns:/\b(gris|gray|grey|space gray|gris espacial)\b/},{key:"orange",label:"Naranja",patterns:/\b(naranja|orange)\b/}];function ze(e){let n=h(e);for(let a of De){let r=a.patterns.exec(n);if(r)return{key:a.key,label:a.label,quote:S(n,r.index,r[0].length)}}return null}var He=[{condition:"new",kind:"explicit",score:5,patterns:/\b(precintad[oa]|sin abrir|nuevo a estrenar|sellad[oa]|nuevo sin usar|new sealed)\b/},{condition:"like_new",kind:"explicit",score:4,patterns:/\b(como nuevo|impecable|perfecto estado|estado impecable|sin un rasgu[nñ]o|10\/10|a estrenar|apenas usado)\b/},{condition:"good",kind:"explicit",score:3,patterns:/\b(buen estado|muy buen estado|bien cuidado|funciona perfectamente|9\/10|8\/10|se[nñ]ales m[ií]nimas)\b/},{condition:"fair",kind:"explicit",score:2,patterns:/\b(estado aceptable|estado regular|bastante usad[oa]|7\/10|6\/10)\b/},{condition:"fair",kind:"inferred",score:2,patterns:/\b(se[nñ]ales de uso|usad[oa] con marcas|marcas de uso|algun ara[nñ]azo|algunos ara[nñ]azos)\b/},{condition:"poor",kind:"severe",score:1,patterns:/\b(para piezas|no funciona|pantalla rota|averiad[oa]|no enciende|no arranca|placa da[nñ]ada)\b/},{condition:"poor",kind:"inferred",score:1,patterns:/\b(muy usado|golpead[oa]|mal estado)\b/}];function Be(e){let n=h(e),a=[];for(let s of He){let l=s.patterns.exec(n);l&&a.push({condition:s.condition,quote:S(n,l.index,l[0].length),score:s.score,kind:s.kind})}if(a.length===0)return null;let r=[...new Set(a.map(s=>s.condition))],t=s=>a.filter(l=>l.kind===s).sort((l,d)=>l.score-d.score)[0],o=t("severe")??t("explicit")??t("inferred");return{condition:o.condition,quote:o.quote,claims:r}}function Fe(e){let a=/(?:bater[ií]a|battery|salud)[^\d%]{0,25}(\d{2,3})\s?%|(\d{2,3})\s?%[^\d]{0,15}(?:bater[ií]a|battery|salud)/i.exec(e);if(!a)return null;let r=Number.parseInt(a[1]??a[2],10);return r<1||r>100?null:{pct:r,quote:S(e,a.index,a[0].length)}}var Ue=[{label:"Caja original",patterns:/\b(caja original|con caja|en su caja|caja incluida)\b/},{label:"Cargador",patterns:/\b(cargador|adaptador de corriente|con cargador)\b/},{label:"Cable",patterns:/\b(cable|cable de carga|cable usb|cable lightning|cable tipo c)\b/},{label:"Auriculares",patterns:/\b(auriculares|airpods incluidos|cascos)\b/},{label:"Funda",patterns:/\b(funda|carcasa|case)\b/},{label:"Protector de pantalla",patterns:/\b(protector de pantalla|cristal templado|protector)\b/},{label:"Factura de compra",patterns:/\b(factura|ticket de compra|recibo|comprobante de compra)\b/},{label:"Garant\xEDa vigente",patterns:/\b(con garant[ií]a|garant[ií]a hasta|garant[ií]a de \d|a[nñ]o de garant[ií]a|en garant[ií]a)\b/},{label:"Mando adicional",patterns:/\b(mando adicional|dos mandos|2 mandos|mando extra)\b/},{label:"Juegos incluidos",patterns:/\b(juegos incluidos|con juegos|incluye juegos)\b/},{label:"Teclado / Apple Pencil",patterns:/\b(apple pencil|magic keyboard|teclado incluido|smart keyboard)\b/}];function Ke(e){let n=h(e),a=ie(n),r=[],t=[];for(let o of Ue){let s=o.patterns.exec(n);s&&(le(a,s.index)||(r.push(o.label),t.push({field:`accesorio:${o.label}`,quote:S(n,s.index,s[0].length)})))}return{labels:r,evidence:t}}var Ve=[{label:"Pantalla rota o agrietada",patterns:/\b(pantalla rota|pantalla agrietada|cristal roto|grieta|agrietad[oa]|pantalla rajada)\b/},{label:"Ara\xF1azos",patterns:/\b(ara[nñ]azos?|rayad[oa]|rayas en|marcas de ara[nñ]azo)\b/},{label:"Golpes o abolladuras",patterns:/\b(golpes?|abolladura|abollad[oa]|marcas de golpe|esquina golpeada)\b/},{label:"Pantalla no original / reparada",patterns:/\b(pantalla cambiada|pantalla no original|pantalla gen[eé]rica|reparad[oa] en|cambio de pantalla)\b/},{label:"Bater\xEDa sustituida no oficial",patterns:/\b(bater[ií]a cambiada|bater[ií]a gen[eé]rica|bater[ií]a no original)\b/},{label:"Da\xF1o por humedad o agua",patterns:/\b(humedad|mojad[oa]|ca[ií]do al agua|da[nñ]o por agua)\b/},{label:"P\xEDxeles muertos o manchas en pantalla",patterns:/\b(p[ií]xel(es)? muertos?|mancha en la pantalla|burn.?in|quemado de pantalla)\b/},{label:"Problemas de carga",patterns:/\b(no carga|falla la carga|puerto de carga da[nñ]ado|carga intermitente)\b/},{label:"Face ID / sensor no funciona",patterns:/\b(face id no|touch id no|sensor no funciona|c[aá]mara no funciona)\b/},{label:"No enciende / para piezas",patterns:/\b(no enciende|para piezas|para repuesto|no arranca)\b/}];function Xe(e){let n=h(e),a=ie(n),r=[],t=[];for(let o of Ve){let s=o.patterns.exec(n);s&&(le(a,s.index)||(r.push(o.label),t.push({field:`da\xF1o:${o.label}`,quote:S(n,s.index,s[0].length)})))}return{labels:r,evidence:t}}function We(e){let n=new Date().getFullYear(),r=/\b(?:comprad[oa]|adquirid[oa]|de|del|a[nñ]o)\s+(?:en\s+)?(20\d{2})\b/i.exec(e);if(r){let s=Number.parseInt(r[1],10);if(s>=2010&&s<=n)return{year:s,quote:S(e,r.index,r[0].length)}}let o=/\b(\d{1,2})\s+a[nñ]os?\s+(?:de\s+)?(?:uso|antig[uü]edad)\b/i.exec(e);if(o){let s=Number.parseInt(o[1],10);if(s>=0&&s<=20)return{year:n-s,quote:S(e,o.index,o[0].length)}}return null}var Ze=/\b(madrid|barcelona|valencia|sevilla|zaragoza|malaga|murcia|palma|bilbao|alicante|cordoba|valladolid|vigo|gijon|granada|coruna|vitoria|santander|pamplona|almeria|donostia|san sebastian|toledo|salamanca|badajoz|tenerife|las palmas|mallorca|ibiza)\b/;function Je(e){let n=h(e),a=Ze.exec(n);if(!a)return null;let r=a[0];return{location:r.charAt(0).toUpperCase()+r.slice(1),quote:S(n,a.index,r.length)}}function Q(e){let n=[],a=Le(e),r=Ie(e),t=je(e),o=ze(e),s=Be(e),l=Fe(e),d=Ke(e),m=Xe(e),b=_e(e),f=We(e),C=Je(e);return a&&n.push({field:"modelo",quote:a.quote}),t&&n.push({field:"almacenamiento",quote:t.quote}),o&&n.push({field:"color",quote:o.quote}),s&&n.push({field:"estado",quote:s.quote}),l&&n.push({field:"bater\xEDa",quote:l.quote}),b&&n.push({field:"precio",quote:b.quote}),f&&n.push({field:"a\xF1o",quote:f.quote}),C&&n.push({field:"ubicaci\xF3n",quote:C.quote}),n.push(...d.evidence,...m.evidence),{brand:a?.reference.brand??r?.brand??null,model:a?.reference.model??null,slug:a?.reference.slug??null,category:a?.reference.category??r?.category??null,storageGb:t?.gb??null,color:o?.label??null,condition:s?.condition??null,conditionClaims:s?.claims??[],batteryHealth:l?.pct??null,accessories:d.labels,damages:m.labels,askingCents:b?.cents??null,declaredYear:f?.year??null,location:C?.location??null,evidence:n}}var Qe=[{code:"off_platform_payment",kind:"scam",severity:"critical",weight:32,title:"Pide pagar fuera de la plataforma",detail:"El vendedor propone Bizum, transferencia o efectivo por adelantado sin usar el sistema de pago protegido. Es el patr\xF3n de fraude m\xE1s com\xFAn: sin la plataforma de por medio no hay forma de reclamar el dinero. Insiste en usar el pago protegido o en pagar en mano tras probar el producto.",patterns:/\b(bizum|transferencia bancaria|paypal amigos|paypal familia|western union|money ?gram|revolut|pago por adelantado|pagar por adelantado|fuera de la (app|plataforma)|te paso mi (iban|cuenta))\b/},{code:"seller_abroad",kind:"scam",severity:"critical",weight:30,title:"El vendedor dice estar fuera o de viaje",detail:"\xABEstoy en el extranjero / de viaje / me he mudado\xBB combinado con env\xEDo es una excusa cl\xE1sica para justificar que no puedes ver el producto ni entregarlo en mano. No hay forma de verificar que el art\xEDculo existe.",patterns:/\b(estoy en el extranjero|vivo fuera de espa[nñ]a|estoy de viaje|me he mudado a|estoy fuera del pa[ií]s|trabajo en el extranjero|actualmente en (londres|alemania|francia|italia|portugal))\b/},{code:"no_inspection",kind:"scam",severity:"high",weight:22,title:"No permite ver ni probar el producto",detail:"Se niega a entregar en mano, a hacer videollamada o a enviar fotos adicionales. Un vendedor leg\xEDtimo no tiene problema en demostrar que el producto existe y funciona.",patterns:/\b(no puedo enviar (m[aá]s )?fotos|no hago videollamada|no se puede ver antes|no acepto ver el producto|solo env[ií]o|no entrego en mano|no admito pruebas)\b/},{code:"advance_deposit",kind:"scam",severity:"high",weight:24,title:"Exige una se\xF1al o reserva por adelantado",detail:"Pedir una \xABse\xF1al\xBB para reservar antes de ver el producto es un m\xE9todo habitual de estafa: se cobra a varios compradores y no se entrega nada. Nunca pagues una reserva sin ver el art\xEDculo.",patterns:/\b(se[nñ]al para reservar|dejar una se[nñ]al|reserva con \d|pago de reserva|para reservarlo hay que|adelanto del \d{1,2}%)\b/},{code:"account_locked",kind:"scam",severity:"critical",weight:34,title:"Posible bloqueo por cuenta (iCloud / Google)",detail:"Un dispositivo con cuenta iCloud o Google del anterior propietario es un pisapapeles: no se puede activar ni restaurar y no existe forma de desbloquearlo. Exige que el vendedor lo borre delante de ti (Ajustes \u2192 Borrar contenido) y que quede en la pantalla de bienvenida.",patterns:/\b(bloqueado por icloud|cuenta icloud del anterior|no recuerdo la contrase[nñ]a de icloud|pide cuenta anterior|bloqueo de cuenta|no se puede resetear|pide el pin del anterior|cuenta google anterior|frp)\b/},{code:"imei_blocked",kind:"scam",severity:"critical",weight:30,title:"Indicios de IMEI bloqueado o terminal robado",detail:"Un IMEI en lista negra deja el tel\xE9fono sin cobertura en todas las operadoras. Antes de pagar, pide el IMEI y compru\xE9balo; si el vendedor se niega a dar el IMEI, no compres.",patterns:/\b(imei bloqueado|lista negra|no funciona con (movistar|vodafone|orange)|solo funciona con wifi|sin cobertura|no coge se[nñ]al|libre pero solo wifi)\b/},{code:"urgency_pressure",kind:"scam",severity:"medium",weight:12,title:"Presi\xF3n por urgencia",detail:"Las prisas artificiales (\xABsolo hoy\xBB, \xABprimera persona que pague\xBB) buscan que no verifiques nada. Un precio real aguanta que te tomes un d\xEDa para comprobar el producto.",patterns:/\b(urge vender|solo por hoy|[uú]ltimo d[ií]a|primera persona que (pague|lo reserve)|me corre prisa|vendo ya|antes de las \d+h)\b/},{code:"sealed_but_cheap",kind:"scam",severity:"high",weight:18,title:"\xABPrecintado\xBB a precio muy bajo",detail:"Un producto nuevo y sellado muy por debajo del mercado suele ser una caja vac\xEDa, una unidad falsificada o un art\xEDculo de procedencia il\xEDcita. Comprueba el n\xFAmero de serie con el fabricante antes de pagar.",patterns:/\b(precintad[oa]|sin abrir|sellad[oa]|a estrenar)\b/},{code:"no_invoice_new",kind:"risk",severity:"medium",weight:8,title:"Sin factura ni garant\xEDa",detail:"Sin factura no hay garant\xEDa del fabricante ni prueba de propiedad. No invalida la compra, pero reduce el valor del producto y te deja sin cobertura si falla.",patterns:/\b(sin factura|no tengo factura|sin garant[ií]a|no tiene garant[ií]a|perd[ií] la factura)\b/},{code:"external_link",kind:"scam",severity:"high",weight:20,title:"Redirige a un enlace o web externa",detail:"Los enlaces a webs de \xABpago seguro\xBB o \xABverificaci\xF3n\xBB fuera de la plataforma son phishing: replican la p\xE1gina real para capturar tu tarjeta. Nunca introduzcas datos de pago en un enlace enviado por el vendedor.",patterns:/\b(entra en este enlace|verifica tu cuenta en|completa el pago en|http:\/\/bit\.ly|pago seguro en|formulario de entrega)\b/},{code:"contact_off_platform",kind:"scam",severity:"medium",weight:10,title:"Empuja a hablar por WhatsApp o Telegram",detail:"Sacar la conversaci\xF3n de la plataforma elimina el registro del trato. Si acabas en WhatsApp, la plataforma no puede mediar ni devolverte el dinero. Mant\xE9n la negociaci\xF3n en el chat oficial.",patterns:/\b(escr[ií]beme al whatsapp|mi whatsapp es|háblame por telegram|te paso mi n[uú]mero|contacto por wasap|\+34\s?\d{2}\s?\d{3}\s?\d{2}\s?\d{2})\b/},{code:"stock_photos",kind:"scam",severity:"medium",weight:14,title:"Fotos que parecen de cat\xE1logo",detail:"Im\xE1genes de prensa o de la web del fabricante en lugar del producto real. Pide fotos del art\xEDculo encendido, con la fecha del d\xEDa visible en pantalla y con el n\xFAmero de serie.",patterns:/\b(foto de (internet|catalogo|muestra)|imagen de referencia|fotos gen[eé]ricas|foto ilustrativa)\b/},{code:"shipping_only_unusual",kind:"risk",severity:"low",weight:6,title:"Solo acepta env\xEDo",detail:"No es necesariamente fraude, pero pierdes la posibilidad de probar el producto antes de pagar. Usa siempre el env\xEDo protegido de la plataforma para conservar el derecho de devoluci\xF3n.",patterns:/\b(solo env[ií]o|[uú]nicamente env[ií]o|no entrego en persona)\b/}],ea=[{code:"unofficial_repair",kind:"risk",severity:"medium",weight:5,title:"Reparado en servicio no oficial",detail:"Las reparaciones no oficiales pueden usar piezas gen\xE9ricas, anular la resistencia al agua y provocar avisos de \xABpieza desconocida\xBB. Reduce el valor de reventa entre un 10 % y un 20 %.",patterns:/\b(reparad[oa] en (tienda|un sitio)|servicio no oficial|pieza gen[eé]rica|repuesto compatible|arreglad[oa] por mi)\b/},{code:"jailbreak_root",kind:"risk",severity:"medium",weight:5,title:"Dispositivo modificado (jailbreak / root)",detail:"Un sistema modificado puede tener la garant\xEDa anulada, fallos de seguridad y problemas para recibir actualizaciones. Restaura el dispositivo a f\xE1brica antes de usarlo.",patterns:/\b(jailbreak|rooteado|root|bootloader desbloqueado|custom rom|magisk)\b/},{code:"no_returns",kind:"risk",severity:"low",weight:3,title:"No admite devoluciones",detail:"Sin devoluci\xF3n, cualquier fallo posterior es tu problema. Prueba a fondo el producto en el momento de la entrega: c\xE1maras, altavoces, micr\xF3fono, carga, Wi-Fi y todos los botones.",patterns:/\b(no admito devoluciones|sin devoluci[oó]n|venta sin garant[ií]a de devoluci[oó]n|no se aceptan cambios)\b/}];function de(e,n){let a=h(e),r=[];for(let t of n){let o=t.patterns.exec(a);if(!o)continue;let s=Math.max(0,o.index-45),l=Math.min(a.length,o.index+o[0].length+45);r.push({code:t.code,kind:t.kind,severity:t.severity,weight:t.weight,title:t.title,detail:t.detail,evidence:(s>0?"\u2026":"")+a.slice(s,l).trim()+(l<a.length?"\u2026":"")})}return r}function ee(e){let n=[...de(e.text,Qe),...de(e.text,ea)];if(e.marketCents!=null&&e.marketCents>0){let d=e.askingCents/e.marketCents;d<.35?n.push({code:"price_impossibly_low",kind:"scam",severity:"critical",weight:38,title:`Precio ${Math.round((1-d)*100)} % por debajo del mercado`,detail:`Se piden ${_(e.askingCents)} por algo que en el mercado de segunda mano vale alrededor de ${_(e.marketCents)}. Una diferencia de este tama\xF1o casi nunca es una oportunidad: es el gancho de una estafa, un producto robado o bloqueado, o una r\xE9plica. Verifica el producto en persona antes de pagar un solo euro.`,evidence:`Precio pedido ${_(e.askingCents)} frente a mercado ${_(e.marketCents)}`}):d<.5&&n.push({code:"price_very_low",kind:"scam",severity:"high",weight:20,title:`Precio muy por debajo del mercado (${Math.round((1-d)*100)} % menos)`,detail:"Puede ser una venta urgente leg\xEDtima, pero tambi\xE9n el se\xF1uelo t\xEDpico de un fraude. Pide fotos del producto encendido con la fecha de hoy visible, el IMEI o n\xFAmero de serie, y paga en mano tras comprobarlo.",evidence:`Precio pedido ${_(e.askingCents)} frente a mercado ${_(e.marketCents)}`})}let{attributes:a}=e,r=h(e.text),t=a.conditionClaims.includes("new"),o=a.conditionClaims.includes("like_new");(t||o)&&a.damages.length>0&&n.push({code:"inconsistent_new_with_damage",kind:"inconsistency",severity:t?"high":"medium",weight:t?16:8,title:t?"Dice \xABnuevo\xBB pero describe da\xF1os":"Dice \xABcomo nuevo\xBB pero describe da\xF1os",detail:`El anuncio se presenta como ${t?"nuevo o precintado":"como nuevo"} y a la vez menciona ${a.damages.join(", ").toLowerCase()}. Las dos cosas no pueden ser ciertas. La valoraci\xF3n se ha hecho con el estado peor de los dos, pero pregunta directamente y pide fotos del defecto antes de decidir.`,evidence:a.damages.join(" \xB7 ")}),t&&a.batteryHealth!=null&&a.batteryHealth<100&&n.push({code:"inconsistent_new_battery",kind:"inconsistency",severity:"medium",weight:12,title:`\xABNuevo\xBB con bater\xEDa al ${a.batteryHealth} %`,detail:"Un dispositivo realmente precintado marca el 100 % de salud de bater\xEDa. Un valor inferior indica que se ha usado, as\xED que el estado declarado no es correcto.",evidence:`Salud de bater\xEDa declarada: ${a.batteryHealth} %`}),a.storageGb!=null&&a.slug==null&&a.brand!=null&&n.push({code:"model_not_identified",kind:"risk",severity:"low",weight:0,title:"Modelo exacto sin confirmar",detail:"Se ha identificado la marca pero no el modelo concreto en el cat\xE1logo de referencia, as\xED que la valoraci\xF3n es aproximada. Pide al vendedor el modelo exacto (Ajustes \u2192 Informaci\xF3n) para afinar el precio."}),/\b(libre|desbloqueado)\b/.test(r)&&/\b(solo funciona con|bloqueado con|operador)\b/.test(r)&&n.push({code:"inconsistent_unlocked",kind:"inconsistency",severity:"high",weight:15,title:"Dice \xABlibre\xBB y a la vez menciona bloqueo de operador",detail:"El anuncio se contradice sobre si el terminal est\xE1 libre. Un m\xF3vil bloqueado a una operadora vale bastante menos y puede requerir un desbloqueo que no siempre es posible. Conf\xEDrmalo con el IMEI antes de comprar."}),e.imageCount===0&&a.damages.length===0&&a.condition!==null&&n.push({code:"no_images_provided",kind:"risk",severity:"low",weight:4,title:"Sin im\xE1genes que verificar",detail:"El an\xE1lisis se basa solo en el texto. Sube capturas del anuncio para que se revisen los da\xF1os visibles, la coherencia de las fotos y los detalles de la pantalla."}),a.batteryHealth!=null&&a.batteryHealth<80&&n.push({code:"battery_degraded",kind:"risk",severity:"medium",weight:6,title:`Bater\xEDa degradada (${a.batteryHealth} %)`,detail:"Por debajo del 80 % la bater\xEDa est\xE1 fuera del rango de servicio y el dispositivo puede apagarse antes de tiempo o limitar su rendimiento. Sustituirla cuesta entre 50 \u20AC y 120 \u20AC seg\xFAn modelo: descu\xE9ntalo del precio.",evidence:`Salud de bater\xEDa: ${a.batteryHealth} %`}),e.ageYears!=null&&e.ageYears>=6&&n.push({code:"end_of_support",kind:"risk",severity:"medium",weight:4,title:`Modelo de hace ${e.ageYears} a\xF1os`,detail:"Un dispositivo de esta antig\xFCedad est\xE1 cerca del fin de soporte de software: dejar\xE1 de recibir actualizaciones de seguridad y algunas apps dejar\xE1n de ser compatibles. Cuenta con una vida \xFAtil corta."}),a.accessories.includes("Factura de compra")&&n.push({code:"has_invoice",kind:"positive",severity:"info",weight:0,title:"Incluye factura de compra",detail:"La factura acredita la propiedad, permite reclamar la garant\xEDa del fabricante y descarta que el producto sea robado. Es una de las mejores se\xF1ales de un vendedor leg\xEDtimo."}),a.accessories.includes("Garant\xEDa vigente")&&n.push({code:"has_warranty",kind:"positive",severity:"info",weight:0,title:"Garant\xEDa todav\xEDa vigente",detail:"Si queda garant\xEDa del fabricante, cualquier aver\xEDa de f\xE1brica est\xE1 cubierta. Esto justifica pagar algo m\xE1s que por una unidad sin garant\xEDa."}),a.accessories.includes("Caja original")&&n.push({code:"has_box",kind:"positive",severity:"info",weight:0,title:"Con caja y accesorios originales",detail:"La caja original con sus accesorios a\xF1ade entre un 2 % y un 5 % al valor de reventa y suele indicar un propietario cuidadoso."});let s=n.find(d=>d.code==="sealed_but_cheap");s&&(e.marketCents?e.askingCents/e.marketCents:1)>=.6&&n.splice(n.indexOf(s),1);let l=ra(Math.round(n.reduce((d,m)=>d+m.weight,0)),0,100);return{signals:aa(n),scamRisk:l}}function aa(e){let n=new Set,a=[],r={critical:0,high:1,medium:2,low:3,info:4};for(let t of e)n.has(t.code)||(n.add(t.code),a.push(t));return a.sort((t,o)=>r[t.severity]-r[o.severity]||o.weight-t.weight)}function ra(e,n,a){return Math.min(a,Math.max(n,e))}function _(e){return M(e)}var L={phone:"M\xF3vil",tablet:"Tablet",laptop:"Port\xE1til",watch:"Smartwatch",console:"Consola"},k={new:"Nuevo / precintado",like_new:"Como nuevo",good:"Buen estado",fair:"Estado aceptable",poor:"Estado deficiente"},ce=["new","like_new","good","fair","poor"],pe={CHOLLO:"Chollo",CORRECTO:"Precio correcto",CARO:"Caro",ESTAFA_PROBABLE:"Posible estafa",SIN_VALORAR:"Sin valorar"};var H="1.0.0",na={phone:[.78,.6,.5,.42,.34,.28,.23,.19,.16],tablet:[.82,.66,.55,.46,.39,.33,.27,.22,.18],laptop:[.8,.66,.55,.45,.37,.3,.24,.19,.15],watch:[.75,.56,.42,.32,.25,.2,.16,.13,.1],console:[.88,.82,.76,.7,.64,.58,.52,.46,.4]},oa={Apple:1.14,Nintendo:1.1,Sony:1.04,Samsung:.94,Microsoft:1,Valve:1.06,Google:.95,OnePlus:.9,Lenovo:.9,Dell:.9,Asus:.88,HP:.86,Acer:.84,MSI:.86,Xiaomi:.86,Huawei:.8},ta=new Set(["Ara\xF1azos","Golpes o abolladuras"]),ge={new:1.28,like_new:1.13,good:1,fair:.85,poor:.55},sa={"Caja original":.025,Cargador:.02,Cable:.005,"Factura de compra":.02,"Garant\xEDa vigente":.06,Auriculares:.01,"Mando adicional":.05,"Juegos incluidos":.04,"Teclado / Apple Pencil":.07},me={"Pantalla rota o agrietada":.32,"Pantalla no original / reparada":.16,"Golpes o abolladuras":.1,Ara\u00F1azos:.05,"Bater\xEDa sustituida no oficial":.07,"Da\xF1o por humedad o agua":.35,"P\xEDxeles muertos o manchas en pantalla":.14,"Problemas de carga":.25,"Face ID / sensor no funciona":.2,"No enciende / para piezas":.75},j={chollo:.82,correcto:1.08,scamOverride:60};function be(e){let n=e.now??new Date,a=e.attributes,r=[],t=[],o=a.slug?W.get(a.slug)??null:null,s=a.condition??"good";a.condition==null&&t.push("El anuncio no indica claramente el estado del producto. Se ha asumido \xABbuen estado\xBB, que es el caso m\xE1s frecuente; si al verlo est\xE1 peor, el precio justo baja.");let l,d,m;if(o){let v=se(o,a.storageGb);l=v.cents,d=Math.max(0,n.getFullYear()-o.releaseYear),m=oa[o.brand]??1,r.push({label:"PVP oficial de lanzamiento",detail:`${o.brand} ${o.model}`+(v.matchedGb?` \xB7 ${O(v.matchedGb)}`:"")+` \u2014 lanzamiento en ${o.releaseYear}. Fuente: ${o.source}`,valueCents:l}),a.storageGb!=null&&v.matchedGb!==a.storageGb&&t.push(`El almacenamiento del anuncio (${O(a.storageGb)}) no est\xE1 en el cat\xE1logo de este modelo; se ha usado la variante de ${O(v.matchedGb??0)} para no sobrevalorar el producto.`)}else return pa(e,n,s);let b=na[o.category],f=b[Math.min(d,b.length-1)]??b[b.length-1],C=Math.min(.92,ue(f*m)),y=Math.round(l*C);r.push({label:`Depreciaci\xF3n por antig\xFCedad (${d} ${d===1?"a\xF1o":"a\xF1os"})`,detail:`Curva de ${L[o.category].toLowerCase()}: ${$(f)} de retenci\xF3n`+(m!==1?` \xB7 ajuste de marca ${o.brand} \xD7${m.toFixed(2)} (su valor residual es ${m>1?"superior":"inferior"} a la media)`:"")+` \u2192 ${$(C)} del PVP.`,factor:C,valueCents:y});let x=ge[s],N=Math.round(y*x);r.push({label:`Estado: ${k[s].toLowerCase()}`,detail:x===1?"Estado de referencia: no se aplica ajuste.":`${x>1?"Suma":"Resta"} ${$(Math.abs(x-1))} sobre el valor de una unidad en buen estado.`,factor:x,valueCents:N});let u=1,T=[];for(let v of a.accessories){let R=sa[v];R&&(u+=R,T.push(`${v} +${$(R)}`))}let he=s==="fair"||s==="poor";for(let v of a.damages){let R=me[v];if(R){if(ta.has(v)&&he){T.push(`${v} ya descontado en el estado \xAB${k[s].toLowerCase()}\xBB`);continue}u-=R,T.push(`${v} \u2212${$(R)}`)}}a.batteryHealth!=null&&(a.batteryHealth<80?(u-=.07,T.push(`bater\xEDa al ${a.batteryHealth} % \u22127 %`)):a.batteryHealth<86?(u-=.03,T.push(`bater\xEDa al ${a.batteryHealth} % \u22123 %`)):a.batteryHealth>=95&&s!=="new"&&(u+=.02,T.push(`bater\xEDa al ${a.batteryHealth} % +2 %`))),u=E(ue(u),.08,1.35);let G=Math.max(1e3,Math.round(N*u));r.push({label:"Ajustes por accesorios, bater\xEDa y da\xF1os",detail:T.length>0?T.join(" \xB7 ")+` \u2192 factor \xD7${u.toFixed(3)}`:"No se han detectado accesorios extra ni da\xF1os que modifiquen el precio.",factor:u,valueCents:G});let w=N,fe=Math.round(w*.89),Ce=Math.round(w*1.14),Y=e.askingCents,{signals:B,scamRisk:D}=ee({attributes:a,text:e.text,marketCents:w,askingCents:Y,ageYears:d,imageCount:e.imageCount,identified:!0}),F=Y/G,ae=ia(F,D),U=w-Y,re=ua(U/w*100),K=da({fairCents:G,askingCents:Y,marketCents:w,attr:a,ageYears:d,reference:o,signals:B}),V=ye(a,e,o),ne=la(F),z=100-D,oe=E(Math.min(Math.round(ne*.6+z*.3+V*.1),z),1,100),te=E(Math.min(Math.round(ne*.55+z*.45),z),1,99);return{engineVersion:H,generatedAt:n.toISOString(),product:{category:o.category,categoryLabel:L[o.category],brand:o.brand,model:o.model,storageGb:a.storageGb,color:a.color,condition:s,conditionLabel:k[s],accessories:a.accessories,damages:a.damages,batteryHealth:a.batteryHealth},pricing:{askingCents:Y,marketCents:w,marketLowCents:fe,marketHighCents:Ce,fairCents:G,savingCents:U,savingPct:re,negotiationUpsideCents:Math.max(0,Y-K.targetCents)},verdict:ae,score:oe,buyProbability:te,scamRisk:D,confidence:V,signals:B,breakdown:{reference:o,ageYears:d,retention:C,conditionFactor:x,adjustmentFactor:u,steps:r,caveats:t},negotiation:K,explanation:ca({verdict:ae,ratio:F,askingCents:Y,marketCents:w,fairCents:G,savingCents:U,savingPct:re,scamRisk:D,score:oe,buyProbability:te,confidence:V,signals:B,attr:a,reference:o,ageYears:d,condition:s,negotiation:K,retention:C}),provenance:{inputs:e.inputs,aiUsedFor:e.aiUsedFor,aiModel:e.aiModel,catalogSource:o.source,extractionEvidence:a.evidence}}}function ia(e,n){return n>=j.scamOverride?"ESTAFA_PROBABLE":e<=j.chollo?"CHOLLO":e<=j.correcto?"CORRECTO":"CARO"}function la(e){return E(Math.round((1.3-Math.max(e,.72))/.6*100),0,100)}function ye(e,n,a){let r=35;return a&&(r+=25),e.storageGb!=null&&(r+=10),e.condition!=null&&(r+=10),e.batteryHealth!=null&&(r+=5),n.imageCount>0&&(r+=8),n.aiUsedFor.includes("vision")&&(r+=4),n.aiUsedFor.includes("extraction")&&(r+=5),n.text.length>250?r+=5:n.text.length<60&&(r-=12),e.evidence.length>=4&&(r+=3),E(r,5,99)}function da(e){let{fairCents:n,askingCents:a,attr:r,reference:t,ageYears:o}=e,s=Math.min(a,Math.round(n*.94)),l=Math.min(s,Math.max(Math.round(n*.78),Math.round(s*.9))),d=Math.round(n*1.04),m=[t.brand,t.model,r.storageGb?O(r.storageGb):null].filter(Boolean).join(" ");if(a<=s)return{targetCents:s,openingOfferCents:a,walkAwayCents:d,arguments:[`El precio pedido (${c(a)}) ya est\xE1 por debajo del valor justo de esta unidad (${c(n)}): no hay margen que ganar regateando, y s\xED una venta que perder.`,"Responde r\xE1pido y s\xE9 el primero: en los anuncios por debajo de mercado la unidad se va en horas.","Invierte el esfuerzo en verificar, no en negociar: comprueba que enciende, que la cuenta del anterior propietario est\xE1 borrada y que no hay bloqueo de operador.",...r.accessories.includes("Factura de compra")?[]:["Pide la factura o el justificante de compra: es lo \xFAnico que conviene reclamar a este precio."]],message:`Hola, me interesa el ${m}. Me encaja el precio que pides, as\xED que por m\xED lo cerramos tal cual. \xBFCu\xE1ndo te viene bien la entrega en mano? Puedo pasar hoy o ma\xF1ana, pagar en el momento y comprobarlo all\xED mismo contigo.`};let b=[];a>n&&b.push(`El precio pedido est\xE1 ${c(a-n)} por encima de lo que vale esta unidad seg\xFAn su estado y antig\xFCedad (${c(n)}).`),o>=2&&b.push(`El ${t.model} sali\xF3 en ${t.releaseYear}: tiene ${o} a\xF1os y le quedan pocos ciclos de actualizaciones, lo que reduce su valor de reventa.`);for(let y of r.damages){let x=me[y];x&&b.push(`${y}: descuento razonable de ${$(x)} (${c(Math.round(n*x))}) por la reparaci\xF3n o la p\xE9rdida de valor.`)}r.batteryHealth!=null&&r.batteryHealth<86&&b.push(`La bater\xEDa est\xE1 al ${r.batteryHealth} %: sustituirla en servicio oficial cuesta entre 50 \u20AC y 120 \u20AC, y eso lo asume el comprador.`),r.accessories.includes("Caja original")||b.push("Sin caja ni accesorios originales, el valor de reventa baja entre un 2 % y un 5 %."),!r.accessories.includes("Factura de compra")&&!r.accessories.includes("Garant\xEDa vigente")&&b.push("Sin factura ni garant\xEDa, cualquier aver\xEDa posterior corre por cuenta del comprador."),b.push("Hay unidades equivalentes publicadas en el mismo rango, as\xED que el vendedor sabe que puede perder la venta si no ajusta.");let f=[r.damages.length>0?r.damages[0].toLowerCase():null,r.batteryHealth!=null&&r.batteryHealth<86?`la bater\xEDa est\xE1 al ${r.batteryHealth} %`:null,o>=3?`el modelo es de ${t.releaseYear}`:null,r.accessories.includes("Caja original")?null:"no incluye caja ni accesorios originales"].filter(y=>y!==null),C=`Hola, me interesa el ${m}. He estado comparando precios de unidades equivalentes y en el estado que describes se est\xE1n cerrando alrededor de ${c(s)}`+(f.length>0?`, sobre todo porque ${f.slice(0,2).join(" y ")}`:"")+`. Te puedo ofrecer ${c(l)} ahora mismo, pago y recogida cuando te venga bien. Si te encaja, lo cerramos hoy.`;return{targetCents:s,openingOfferCents:l,walkAwayCents:d,arguments:b,message:C}}function ca(e){let n=`${e.reference.brand} ${e.reference.model}`,a=e.askingCents-e.fairCents,r=Math.abs(Math.round(a/e.fairCents*100)),o={CHOLLO:`Es un chollo: se piden ${c(e.askingCents)} por un ${n} que en este estado vale alrededor de ${c(e.fairCents)}, un ${r} % por debajo.`,CORRECTO:`El precio es correcto: los ${c(e.askingCents)} que se piden est\xE1n dentro del rango de mercado para un ${n} en este estado (${c(e.fairCents)} de valor justo).`,CARO:`Est\xE1 caro: se piden ${c(e.askingCents)} por un ${n} cuyo valor justo en este estado es de ${c(e.fairCents)}, un ${r} % m\xE1s de lo que deber\xEDa costar.`,ESTAFA_PROBABLE:`Alto riesgo de fraude. Independientemente del precio, este anuncio acumula se\xF1ales que apuntan a estafa (\xEDndice de riesgo ${e.scamRisk}/100). La recomendaci\xF3n es no seguir adelante.`,SIN_VALORAR:`No se ha podido valorar el precio de este anuncio. El vendedor pide ${c(e.askingCents)}.`}[e.verdict]+` Valoraci\xF3n global: ${e.score}/100, con una probabilidad del ${e.buyProbability} % de que sea una buena compra y una confianza del an\xE1lisis del ${e.confidence} %.`,s=`El c\xE1lculo parte del PVP oficial de lanzamiento del ${n}`+(e.attr.storageGb?` en su versi\xF3n de ${O(e.attr.storageGb)}`:"")+` (${e.reference.source.toLowerCase()}). Sobre ese precio se aplica la depreciaci\xF3n que corresponde a sus ${e.ageYears} ${e.ageYears===1?"a\xF1o":"a\xF1os"} de antig\xFCedad \u2014una retenci\xF3n del ${$(e.retention)}, ajustada al comportamiento de ${e.reference.brand} en el mercado de segunda mano\u2014 y despu\xE9s el factor de estado y los ajustes por accesorios y da\xF1os concretos de esta unidad. El resultado es un valor de mercado de ${c(e.marketCents)} (rango habitual de publicaci\xF3n entre ${c(Math.round(e.marketCents*.89))} y ${c(Math.round(e.marketCents*1.14))}) y un precio justo de ${c(e.fairCents)} para esta unidad en particular. `+(e.verdict==="ESTAFA_PROBABLE"&&e.savingCents>0?`Se piden ${c(e.askingCents)}, un ${I(Math.abs(e.savingPct),2)} por debajo de ese valor. Una diferencia de este tama\xF1o en un anuncio con las se\xF1ales detectadas no es una oportunidad: es el se\xF1uelo.`:e.savingCents>0?`Comprando a ${c(e.askingCents)} el ahorro frente al mercado es de ${c(e.savingCents)} (${I(e.savingPct,2)}).`:`Comprando a ${c(e.askingCents)} se pagan ${c(-e.savingCents)} por encima del valor de mercado.`),l=[`El estado declarado es \xAB${k[e.condition].toLowerCase()}\xBB`];e.attr.batteryHealth!=null&&l.push(`la bater\xEDa est\xE1 al ${e.attr.batteryHealth} %`),e.attr.accessories.length>0?l.push(`incluye ${e.attr.accessories.join(", ").toLowerCase()}`):l.push("no se mencionan accesorios incluidos"),e.attr.damages.length>0?l.push(`se han detectado estos defectos: ${e.attr.damages.join(", ").toLowerCase()}`):l.push("no se describen da\xF1os");let d=l.join(", ")+". Cada uno de estos factores modifica el precio justo con un porcentaje fijo y documentado, visible en el desglose del c\xE1lculo.",m=e.signals.filter(u=>u.kind==="scam"),b=e.signals.filter(u=>u.kind==="risk"),f=e.signals.filter(u=>u.kind==="inconsistency"),C=e.signals.filter(u=>u.kind==="positive"),y=[];m.length>0?y.push(`Se han detectado ${m.length} ${m.length===1?"se\xF1al":"se\xF1ales"} compatibles con estafa: ${m.map(u=>u.title.toLowerCase()).join("; ")}.`):y.push("No se han encontrado se\xF1ales claras de estafa en el texto del anuncio."),f.length>0&&y.push(`Hay ${f.length} ${f.length===1?"incoherencia":"incoherencias"} en la informaci\xF3n del vendedor: ${f.map(u=>u.title.toLowerCase()).join("; ")}.`),b.length>0&&y.push(`Riesgos a tener en cuenta: ${b.map(u=>u.title.toLowerCase()).join("; ")}.`),C.length>0&&y.push(`A favor del anuncio: ${C.map(u=>u.title.toLowerCase()).join("; ")}.`),y.push(`El \xEDndice de riesgo de estafa resultante es ${e.scamRisk}/100.`);let x=y.join(" "),N=e.verdict==="ESTAFA_PROBABLE"?`No compres. El riesgo detectado (${e.scamRisk}/100) es demasiado alto para arriesgar ${c(e.askingCents)}. Si aun as\xED quieres seguir, no pagues nada por adelantado: queda en un lugar p\xFAblico, comprueba el producto encendido, verifica el IMEI o n\xFAmero de serie y paga solo en mano.`:e.verdict==="CHOLLO"?`Merece la pena. Ofrece ${c(e.negotiation.openingOfferCents)} para intentar cerrarlo a\xFAn m\xE1s bajo, pero no dejes escapar la unidad por discutir ${c(Math.max(1e3,e.askingCents-e.negotiation.targetCents))}: por encima de ${c(e.negotiation.walkAwayCents)} deja de ser interesante. Antes de pagar, comprueba en persona que enciende, que la cuenta del anterior propietario est\xE1 borrada y que no hay bloqueo de operador.`:e.verdict==="CORRECTO"?`Compra razonable. Empieza ofreciendo ${c(e.negotiation.openingOfferCents)} y cierra en torno a ${c(e.negotiation.targetCents)}; por encima de ${c(e.negotiation.walkAwayCents)} estar\xEDas pagando de m\xE1s. Verifica el producto en persona antes de pagar.`:`Negocia o busca otra unidad. Ofrece ${c(e.negotiation.openingOfferCents)} y no pases de ${c(e.negotiation.walkAwayCents)}: al precio actual pagar\xEDas ${c(a)} de m\xE1s. Si el vendedor no baja, hay unidades equivalentes por menos.`;return{summary:o,priceReasoning:s,conditionReasoning:d,riskReasoning:x,recommendation:N}}function pa(e,n,a){let r=e.attributes,{signals:t,scamRisk:o}=ee({attributes:r,text:e.text,marketCents:null,askingCents:e.askingCents,ageYears:null,imageCount:e.imageCount,identified:!1}),s=e.askingCents,l=E(ye(r,e,null)-20,5,45);return{engineVersion:H,generatedAt:n.toISOString(),product:{category:r.category,categoryLabel:r.category?L[r.category]:"Sin identificar",brand:r.brand,model:r.model,storageGb:r.storageGb,color:r.color,condition:r.condition,conditionLabel:r.condition?k[r.condition]:"Sin determinar",accessories:r.accessories,damages:r.damages,batteryHealth:r.batteryHealth},pricing:{askingCents:s,marketCents:0,marketLowCents:0,marketHighCents:0,fairCents:0,savingCents:0,savingPct:0,negotiationUpsideCents:0},verdict:o>=j.scamOverride?"ESTAFA_PROBABLE":"SIN_VALORAR",score:E(Math.round((100-o)*.5),1,55),buyProbability:E(Math.round((100-o)*.6),1,70),scamRisk:o,confidence:l,signals:t,breakdown:{reference:null,ageYears:0,retention:0,conditionFactor:ge[a],adjustmentFactor:1,steps:[{label:"Producto no identificado en el cat\xE1logo de referencia",detail:"No se ha podido determinar el modelo exacto, as\xED que no se calcula ning\xFAn precio de mercado: dar una cifra sin referencia real ser\xEDa inventarla. Indica marca y modelo completos (o sube una captura del anuncio con el t\xEDtulo) para obtener la valoraci\xF3n de precio."}],caveats:["Este informe no incluye valoraci\xF3n de precio porque falta identificar el modelo. El an\xE1lisis de riesgos y se\xF1ales de estafa s\xED es v\xE1lido."]},negotiation:{targetCents:0,openingOfferCents:0,walkAwayCents:0,arguments:["Antes de negociar, pide al vendedor el modelo exacto y la capacidad (en Ajustes \u2192 Informaci\xF3n del dispositivo).","Pide tambi\xE9n el n\xFAmero de serie o IMEI: permite verificar el modelo real y comprobar que no est\xE1 bloqueado."],message:"Hola, me interesa el producto. \xBFMe puedes confirmar el modelo exacto y la capacidad que aparecen en Ajustes \u2192 Informaci\xF3n, y si incluye caja y factura? Con esos datos te digo algo enseguida."},explanation:{summary:`No se ha podido identificar el modelo exacto del anuncio, as\xED que este informe no estima precio de mercado: solo analiza riesgos. El vendedor pide ${c(s)}. \xCDndice de riesgo de estafa: ${o}/100.`,priceReasoning:"DealScan AI solo estima precios cuando puede anclarlos a un modelo concreto del cat\xE1logo de referencia (PVP oficial de lanzamiento + curva de depreciaci\xF3n). Sin esa referencia no se genera ninguna cifra, porque un precio sin base real no sirve para decidir. A\xF1ade marca y modelo completos y el informe incluir\xE1 la valoraci\xF3n.",conditionReasoning:r.condition!=null?`El estado declarado es \xAB${k[r.condition].toLowerCase()}\xBB.`+(r.damages.length>0?` Defectos detectados: ${r.damages.join(", ").toLowerCase()}.`:""):"El anuncio no permite determinar el estado del producto.",riskReasoning:t.length>0?`Se\xF1ales detectadas: ${t.map(d=>d.title.toLowerCase()).join("; ")}. \xCDndice de riesgo: ${o}/100.`:"No se han detectado se\xF1ales de riesgo en el texto aportado.",recommendation:o>=j.scamOverride?"No sigas adelante con este anuncio: las se\xF1ales de fraude son suficientes para descartarlo sin necesidad de valorar el precio.":"Pide al vendedor el modelo exacto y vuelve a lanzar el an\xE1lisis: con esa informaci\xF3n el informe incluir\xE1 precio de mercado, ahorro estimado y plan de negociaci\xF3n."},provenance:{inputs:e.inputs,aiUsedFor:e.aiUsedFor,aiModel:e.aiModel,catalogSource:null,extractionEvidence:r.evidence}}}function E(e,n,a){return Math.min(a,Math.max(n,e))}function ua(e){return Math.round(e*100)/100}function ue(e){return Math.round(e*1e4)/1e4}function $(e){return`${Math.round(e*100)} %`}function O(e){return e>=1024&&e%1024===0?`${e/1024} TB`:`${e} GB`}function c(e){return M(e)}function ga(e){let n=performance.now(),a=e.text.trim();if(a.length===0)throw new Error("Pega el texto del anuncio para poder analizarlo.");let r=Q(a),t=["Vista previa sin IA: el producto se ha identificado con el analizador determinista por reglas. Los c\xE1lculos de precio son id\xE9nticos a los de la aplicaci\xF3n, porque no dependen de la IA."];e.condition&&(r={...r,condition:e.condition,conditionClaims:[...new Set([...r.conditionClaims,e.condition])],evidence:[...r.evidence,{field:"estado",quote:"Estado indicado manualmente."}]});let o=e.priceEur!=null&&e.priceEur>0?Math.round(e.priceEur*100):r.askingCents;if(o==null||o<=0)throw new Error("No he encontrado el precio en el anuncio. Ind\xEDcalo en el campo \xABPrecio pedido\xBB para poder valorarlo.");return e.priceEur!=null&&e.priceEur>0&&(r={...r,askingCents:o,evidence:[...r.evidence,{field:"precio",quote:"Precio indicado manualmente."}]}),{report:be({attributes:r,text:a,askingCents:o,imageCount:0,inputs:["text"],aiUsedFor:[],aiModel:null}),warnings:t,durationMs:Math.round(performance.now()-n)}}var ma={run:ga,extractAttributes:Q,parseAmountToCents:J,formatEuros:M,formatPercent:I,formatStorage:O,engineVersion:H,catalog:q,labels:{category:L,condition:k,conditionOrder:ce,verdict:pe}};window.DealScan=ma;})();
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var D = window.DealScan;
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------------------------------------------------------------- tema
+  var themeBtn = $("theme");
+  var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg>';
+  var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function isDark() {
+    var set = document.documentElement.getAttribute("data-theme");
+    if (set === "dark") return true;
+    if (set === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function paintThemeBtn() { themeBtn.innerHTML = isDark() ? SUN : MOON; }
+  themeBtn.addEventListener("click", function () {
+    document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark");
+    paintThemeBtn();
+    if (lastReport) render(lastReport);
+  });
+  paintThemeBtn();
+
+  // --------------------------------------------------------------- datos
+  var cats = {};
+  var brands = {};
+  D.catalog.forEach(function (p) { cats[p.category] = 1; brands[p.brand] = 1; });
+  $("fact-models").textContent = D.catalog.length;
+  $("fact-brands").textContent = Object.keys(brands).length;
+  $("fact-cats").textContent = Object.keys(cats).length;
+  $("fact-engine").textContent = "v" + D.engineVersion;
+
+  var sel = $("condition");
+  sel.appendChild(new Option("Automático", ""));
+  D.labels.conditionOrder.forEach(function (k) {
+    sel.appendChild(new Option(D.labels.condition[k], k));
+  });
+
+  // Ejemplos: anuncios verosímiles que ejercitan caminos distintos del motor.
+  var SAMPLES = [
+    {
+      label: "iPhone caro",
+      text: "Vendo iPhone 14 Pro 256GB morado oscuro. Batería al 89%. Buen estado, algún arañazo mínimo en el marco, pantalla perfecta. Incluye caja original y cargador. Precio: 620€. Entrega en mano en Madrid.",
+    },
+    {
+      label: "Chollo real",
+      text: "Vendo iPhone 15 128GB negro, como nuevo, batería 97%. Incluye caja original, cargador y factura de compra con garantía hasta noviembre. 430€. Entrega en mano en Valencia, puedes probarlo antes.",
+    },
+    {
+      label: "Estafa clara",
+      text: "Vendo iPhone 16 Pro 128GB precintado sin abrir. 480€. Estoy en Alemania trabajando, te lo envío por correo y me pagas por Bizum antes del envío. Urge vender, primera persona que pague se lo lleva. No puedo enviar más fotos.",
+    },
+    {
+      label: "Bloqueo iCloud",
+      text: "iPhone 13 128GB azul, 300€. Está bloqueado por iCloud, no recuerdo la contraseña de iCloud del anterior dueño. Solo funciona con wifi. Sin factura.",
+    },
+    {
+      label: "MacBook",
+      text: "MacBook Air M2 256GB gris espacial de 2022. Buen estado, se nota algún uso en la carcasa. Incluye cargador original. Sin caja ni factura. 750€. Barcelona.",
+    },
+    {
+      label: "PS5",
+      text: "Vendo PS5 Slim con dos mandos y 3 juegos, buen estado, con caja original. 380€. Entrega en mano en Sevilla.",
+    },
+    {
+      label: "Pantalla rota",
+      text: "Samsung Galaxy S23 256GB. Se vende con la pantalla rota, funciona todo pero la pantalla está agrietada en una esquina. 180€. Sin caja ni cargador.",
+    },
+    {
+      label: "Sin identificar",
+      text: "Vendo móvil de una marca poco conocida, en buen estado, con cargador. 150€. Entrega en mano.",
+    },
+  ];
+
+  var box = $("samples");
+  SAMPLES.forEach(function (s) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = s.label;
+    b.addEventListener("click", function () {
+      $("text").value = s.text;
+      $("price").value = "";
+      sel.value = "";
+      go();
+    });
+    box.appendChild(b);
+  });
+
+  // -------------------------------------------------------------- ayudas
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  var eur = D.formatEuros;
+
+  function verdictClass(v) {
+    return v === "CHOLLO" ? "v-good"
+      : v === "CORRECTO" ? "v-ok"
+      : v === "CARO" ? "v-warn"
+      : v === "SIN_VALORAR" ? "v-none" : "v-bad";
+  }
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function scoreColor(n) {
+    return cssVar(n >= 75 ? "--good" : n >= 55 ? "--accent" : n >= 35 ? "--warn" : "--bad");
+  }
+  function riskColorName(n) { return n >= 60 ? "--bad" : n >= 30 ? "--warn" : "--good"; }
+  var SEV_LABEL = { critical: "Crítico", high: "Alto", medium: "Medio", low: "Bajo", info: "Info" };
+
+  function dial(score) {
+    var r = 33, c = 2 * Math.PI * r;
+    var dash = (Math.max(0, Math.min(100, score)) / 100) * c;
+    var col = scoreColor(score);
+    return '<div class="dial">'
+      + '<svg viewBox="0 0 84 84" aria-hidden="true">'
+      + '<circle cx="42" cy="42" r="' + r + '" fill="none" stroke="' + cssVar("--line-strong") + '" stroke-width="7"/>'
+      + '<circle cx="42" cy="42" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + c + '"/>'
+      + "</svg>"
+      + '<div class="dial-mid"><b style="color:' + col + '">' + score + "</b><span>/ 100</span></div>"
+      + "</div>";
+  }
+
+  function metric(label, value, colorName) {
+    return "<div><dt>" + esc(label) + "</dt><dd"
+      + (colorName ? ' style="color:' + cssVar(colorName) + '"' : "")
+      + ">" + esc(value) + "</dd></div>";
+  }
+
+  function priceCard(label, value, hint, lead) {
+    return '<div class="price-card' + (lead ? " lead" : "") + '">'
+      + '<span class="eyebrow">' + esc(label) + "</span>"
+      + "<b>" + esc(value) + "</b>"
+      + (hint ? "<small>" + esc(hint) + "</small>" : "")
+      + "</div>";
+  }
+
+  function scale(p) {
+    var lo = Math.min(p.marketLowCents, p.askingCents, p.fairCents) * 0.94;
+    var hi = Math.max(p.marketHighCents, p.askingCents, p.fairCents) * 1.06;
+    var span = Math.max(1, hi - lo);
+    var at = function (c) { return ((c - lo) / span) * 100; };
+    var askCol = cssVar(p.askingCents <= p.fairCents ? "--good"
+      : p.askingCents <= p.marketHighCents ? "--warn" : "--bad");
+    var left = at(p.marketLowCents);
+
+    return '<div class="scale">'
+      + '<div class="scale-track">'
+      + '<div class="scale-range" style="left:' + left + "%;width:" + (at(p.marketHighCents) - left) + '%"></div>'
+      + '<div class="scale-fair" style="left:' + at(p.fairCents) + '%"></div>'
+      + '<div class="scale-ask" style="left:' + at(p.askingCents) + "%;background:" + askCol + '"></div>'
+      + "</div>"
+      + '<div class="scale-key">'
+      + '<span><i class="swatch" style="background:' + cssVar("--accent") + ';opacity:.3"></i>Rango de mercado ' + eur(p.marketLowCents) + " – " + eur(p.marketHighCents) + "</span>"
+      + '<span><i class="swatch bar" style="background:' + cssVar("--accent") + '"></i>Precio justo ' + eur(p.fairCents) + "</span>"
+      + '<span><i class="swatch" style="background:' + askCol + '"></i>Precio pedido ' + eur(p.askingCents) + "</span>"
+      + "</div></div>";
+  }
+
+  function signalHtml(s) {
+    return '<div class="sig"><div class="sig-top">'
+      + '<span class="sev sev-' + esc(s.severity) + '">' + esc(SEV_LABEL[s.severity] || s.severity) + "</span>"
+      + "<strong>" + esc(s.title) + "</strong></div>"
+      + "<p>" + esc(s.detail) + "</p>"
+      + (s.evidence ? "<q>" + esc(s.evidence) + "</q>" : "")
+      + "</div>";
+  }
+
+  function group(title, list, emptyMsg, emptyGood) {
+    if (!list.length && !emptyMsg) return "";
+    return '<div class="sig-group"><h4>' + esc(title) + "</h4>"
+      + (list.length
+        ? list.map(signalHtml).join("")
+        : '<p class="none-msg ' + (emptyGood ? "none-good" : "none-plain") + '">' + esc(emptyMsg) + "</p>")
+      + "</div>";
+  }
+
+  function fact(label, value) {
+    return "<div><dt>" + esc(label) + "</dt><dd>" + esc(value) + "</dd></div>";
+  }
+
+  // ------------------------------------------------------------ informe
+  var lastReport = null;
+
+  function render(r) {
+    lastReport = r;
+    var p = r.pricing;
+    var valued = p.marketCents > 0;
+    var kinds = function (k) { return r.signals.filter(function (s) { return s.kind === k; }); };
+    var scams = kinds("scam"), inc = kinds("inconsistency"), risks = kinds("risk"), pos = kinds("positive");
+
+    var title = [r.product.brand, r.product.model].filter(Boolean).join(" ") || "Producto sin identificar";
+    var cap = r.product.storageGb ? D.formatStorage(r.product.storageGb) : null;
+    var subtitle = [cap, r.product.color, r.product.conditionLabel].filter(Boolean).join(" · ");
+
+    var html = '<div class="report">';
+
+    // Veredicto
+    html += '<section class="panel" style="overflow:hidden">'
+      + '<div class="verdict-band ' + verdictClass(r.verdict) + '">'
+      + "<div><span class=\"eyebrow\">Veredicto</span>"
+      + "<h2>" + esc(D.labels.verdict[r.verdict]) + "</h2>"
+      + '<p class="sub">' + esc(title) + (subtitle ? " · " + esc(subtitle) : "") + "</p></div>"
+      + dial(r.score)
+      + "</div>"
+      + '<dl class="metrics">'
+      + metric("Probabilidad de buena compra", r.buyProbability + " %", scoreColorName(r.buyProbability))
+      + metric("Riesgo de estafa", r.scamRisk + "/100", riskColorName(r.scamRisk))
+      + metric("Confianza del análisis", r.confidence + " %")
+      + metric("Señales detectadas", String(scams.length + inc.length + risks.length), scams.length ? "--bad" : null)
+      + "</dl></section>";
+
+    // Resumen
+    html += '<section class="panel panel-pad">'
+      + '<div class="sec-head"><h3>Resumen del análisis</h3></div>'
+      + '<p class="prose" style="color:var(--ink)">' + esc(r.explanation.summary) + "</p>"
+      + '<div class="callout"><p class="eyebrow">Recomendación</p><p>' + esc(r.explanation.recommendation) + "</p></div>"
+      + "</section>";
+
+    // Precio
+    if (valued) {
+      html += '<section class="panel panel-pad">'
+        + '<div class="sec-head"><h3>Precio</h3></div>'
+        + '<div class="price-grid">'
+        + priceCard("Precio pedido", eur(p.askingCents), "Lo que pide el vendedor")
+        + priceCard("Valor de mercado", eur(p.marketCents), "Unidad equivalente en este estado")
+        + priceCard("Precio justo", eur(p.fairCents), "Ajustado a accesorios y daños de esta unidad", true)
+        + "</div>"
+        + scale(p)
+        // En un anuncio con riesgo de fraude, un descuento enorme no es un
+        // ahorro sino el gancho: mostrarlo en verde junto al aviso de estafa
+        // daría dos mensajes contradictorios.
+        + (r.verdict === "ESTAFA_PROBABLE"
+          ? '<div class="split" style="grid-template-columns:1fr">'
+            + '<div class="tile t-bad"><span class="eyebrow">Diferencia frente al mercado</span>'
+            + "<b>" + (p.savingCents >= 0 ? "−" : "+") + eur(Math.abs(p.savingCents)) + "</b>"
+            + "<small>"
+            + (p.savingCents > 0
+              ? "Se pide un " + D.formatPercent(Math.abs(p.savingPct), 1) + " menos que el valor de mercado. Un descuento de este tamaño no es una oportunidad: es el señuelo habitual de un fraude."
+              : "Se pide un " + D.formatPercent(Math.abs(p.savingPct), 1) + " más que el valor de mercado, además del riesgo detectado.")
+            + "</small></div></div>"
+          : '<div class="split">'
+            + '<div class="tile ' + (p.savingCents >= 0 ? "t-good" : "t-bad") + '">'
+            + '<span class="eyebrow">' + (p.savingCents >= 0 ? "Ahorro estimado" : "Sobreprecio") + "</span>"
+            + "<b>" + eur(Math.abs(p.savingCents)) + "</b>"
+            + "<small>" + D.formatPercent(Math.abs(p.savingPct), 1) + (p.savingCents >= 0 ? " por debajo" : " por encima") + " del valor de mercado</small></div>"
+            + '<div class="tile t-accent"><span class="eyebrow">Margen de negociación</span>'
+            + "<b>" + eur(p.negotiationUpsideCents) + "</b>"
+            + "<small>"
+            + (p.negotiationUpsideCents > 0
+              ? "Del precio pedido hasta el objetivo"
+              : "El precio pedido ya está en el objetivo: no hay margen que negociar")
+            + "</small></div>"
+            + "</div>")
+        + '<p class="prose" style="margin-top:18px">' + esc(r.explanation.priceReasoning) + "</p>"
+        + "</section>";
+    } else {
+      html += '<section class="panel panel-pad" style="background:var(--warn-wash)">'
+        + '<div class="sec-head"><h3>Sin valoración de precio</h3></div>'
+        + '<p class="prose" style="color:var(--ink)">' + esc(r.explanation.priceReasoning) + "</p></section>";
+    }
+
+    // Negociación
+    if (valued && r.verdict !== "ESTAFA_PROBABLE") {
+      html += '<section class="panel panel-pad">'
+        + '<div class="sec-head"><h3>Cómo negociar</h3></div>'
+        + '<div class="price-grid">'
+        + priceCard("Ofrece primero", eur(r.negotiation.openingOfferCents), "Primera oferta al vendedor", true)
+        + priceCard("Cierra en", eur(r.negotiation.targetCents), "Precio objetivo realista")
+        + priceCard("No pases de", eur(r.negotiation.walkAwayCents), "Por encima, no compensa")
+        + "</div>"
+        + '<ul class="args">' + r.negotiation.arguments.map(function (a) { return "<li>" + esc(a) + "</li>"; }).join("") + "</ul>"
+        + '<figure class="script" style="margin-inline:0">'
+        + '<figcaption class="eyebrow">Mensaje listo para enviar</figcaption>'
+        + "<blockquote>" + esc(r.negotiation.message) + "</blockquote>"
+        + '<button type="button" class="copy-btn" id="copy">Copiar mensaje</button>'
+        + "</figure></section>";
+    }
+
+    // Señales
+    html += '<section class="panel panel-pad">'
+      + '<div class="sec-head"><h3>Señales de estafa y riesgos</h3></div>'
+      + group("Señales de estafa", scams, "No se han detectado señales de estafa en la información analizada.", true)
+      + group("Incoherencias en el anuncio", inc, null)
+      + group("Riesgos a tener en cuenta", risks, "Sin riesgos relevantes más allá de los propios de comprar entre particulares.")
+      + group("Puntos a favor", pos, null)
+      + '<p class="prose" style="margin-top:18px">' + esc(r.explanation.riskReasoning) + "</p>"
+      + "</section>";
+
+    // Producto
+    html += '<section class="panel panel-pad">'
+      + '<div class="sec-head"><h3>Producto detectado</h3></div>'
+      + '<dl class="facts">'
+      + fact("Categoría", r.product.categoryLabel)
+      + fact("Marca", r.product.brand || "Sin identificar")
+      + fact("Modelo", r.product.model || "Sin identificar")
+      + fact("Capacidad", cap || "No indicada")
+      + fact("Color", r.product.color || "No indicado")
+      + fact("Estado", r.product.conditionLabel)
+      + fact("Salud de batería", r.product.batteryHealth != null ? r.product.batteryHealth + " %" : "No indicada")
+      + fact("Accesorios", r.product.accessories.length ? r.product.accessories.join(", ") : "Ninguno indicado")
+      + "</dl>"
+      + (r.product.damages.length
+        ? '<div class="callout" style="background:var(--bad-wash)"><p class="eyebrow">Daños detectados</p><div class="tags">'
+          + r.product.damages.map(function (d) { return '<span class="tag">' + esc(d) + "</span>"; }).join("")
+          + "</div></div>"
+        : "")
+      + '<p class="prose" style="margin-top:14px">' + esc(r.explanation.conditionReasoning) + "</p>"
+      + "</section>";
+
+    // Cálculo
+    html += '<section class="panel panel-pad">'
+      + '<div class="sec-head"><h3>Cómo se ha calculado</h3></div>'
+      + '<p class="prose" style="margin-bottom:14px">Cada cifra sale de estos pasos, en este orden. Puedes rehacer la cuenta a mano.</p>'
+      + '<ol class="steps">'
+      + r.breakdown.steps.map(function (s) {
+          return "<li><div style=\"flex:1;min-width:0\"><div class=\"step-head\"><strong>" + esc(s.label) + "</strong>"
+            + (s.valueCents != null ? "<span>" + eur(s.valueCents) + "</span>" : "")
+            + "</div><p>" + esc(s.detail) + "</p></div></li>";
+        }).join("")
+      + "</ol>"
+      + (r.breakdown.caveats.length
+        ? '<div class="caveats"><p class="eyebrow" style="margin-bottom:7px">Limitaciones de esta valoración</p><ul>'
+          + r.breakdown.caveats.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("")
+          + "</ul></div>"
+        : "")
+      + "</section>";
+
+    // Procedencia
+    var inputNames = { url: "enlace del anuncio", text: "texto pegado", image: "capturas" };
+    html += '<section class="panel panel-pad prov">'
+      + '<div class="sec-head"><h3>De dónde salen los datos</h3></div>'
+      + "<ul>"
+      + "<li><strong>Entradas analizadas:</strong> "
+      + esc(r.provenance.inputs.map(function (i) { return inputNames[i] || i; }).join(", ") || "ninguna") + "</li>"
+      + "<li><strong>Identificación del producto:</strong> "
+      + (r.provenance.aiModel
+        ? "asistida por IA (" + esc(r.provenance.aiModel) + ")"
+        : "analizador determinista por reglas, sin IA") + "</li>"
+      + "<li><strong>Precio de referencia:</strong> " + esc(r.provenance.catalogSource || "sin referencia de catálogo") + "</li>"
+      + "<li><strong>Motor de valoración:</strong> v" + esc(r.engineVersion)
+      + " — determinista y auditable. Ningún importe procede de una estimación generativa.</li>"
+      + "</ul>"
+      + (r.provenance.extractionEvidence.length
+        ? "<details><summary>Ver las citas del anuncio que respaldan cada dato ("
+          + r.provenance.extractionEvidence.length + ")</summary><ul class=\"ev\">"
+          + r.provenance.extractionEvidence.map(function (e) {
+              return "<li><b>" + esc(e.field) + ":</b> <i>«" + esc(e.quote) + "»</i></li>";
+            }).join("")
+          + "</ul></details>"
+        : "")
+      + "</section>";
+
+    html += "</div>";
+    $("out").innerHTML = html;
+
+    var copy = $("copy");
+    if (copy) {
+      copy.addEventListener("click", function () {
+        navigator.clipboard.writeText(r.negotiation.message).then(
+          function () { copy.textContent = "Mensaje copiado"; setTimeout(function () { copy.textContent = "Copiar mensaje"; }, 2200); },
+          function () { copy.textContent = "Selecciónalo y cópialo a mano"; }
+        );
+      });
+    }
+  }
+
+  function scoreColorName(n) {
+    return n >= 75 ? "--good" : n >= 55 ? "--accent" : n >= 35 ? "--warn" : "--bad";
+  }
+
+  // ------------------------------------------------------------ ejecución
+  function go() {
+    var errBox = $("error");
+    errBox.hidden = true;
+    errBox.className = "";
+
+    var priceRaw = $("price").value.trim();
+    var priceEur = null;
+    if (priceRaw) {
+      var cents = D.parseAmountToCents(priceRaw);
+      if (cents == null) {
+        errBox.className = "err";
+        errBox.textContent = "El precio indicado no es un importe válido. Escribe solo la cifra, por ejemplo 620.";
+        errBox.hidden = false;
+        return;
+      }
+      priceEur = cents / 100;
+    }
+
+    try {
+      var res = D.run({
+        text: $("text").value,
+        priceEur: priceEur,
+        condition: sel.value || null,
+      });
+      render(res.report);
+      if (window.innerWidth < 1000) {
+        $("out").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } catch (e) {
+      errBox.className = "err";
+      errBox.textContent = e && e.message ? e.message : "No se ha podido completar el análisis.";
+      errBox.hidden = false;
+    }
+  }
+
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); go(); });
+
+  // Arranca con el primer ejemplo para que la página no se vea vacía.
+  $("text").value = SAMPLES[0].text;
+  go();
+})();
+</script>

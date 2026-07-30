@@ -39,13 +39,20 @@ export const CONDITION_ORDER: ConditionKey[] = [
   "poor",
 ];
 
-export type Verdict = "CHOLLO" | "CORRECTO" | "CARO" | "ESTAFA_PROBABLE";
+export type Verdict =
+  | "CHOLLO"
+  | "CORRECTO"
+  | "CARO"
+  | "ESTAFA_PROBABLE"
+  /** El modelo no se ha identificado: no se emite ningún juicio sobre el precio. */
+  | "SIN_VALORAR";
 
 export const VERDICT_LABELS: Record<Verdict, string> = {
   CHOLLO: "Chollo",
   CORRECTO: "Precio correcto",
   CARO: "Caro",
   ESTAFA_PROBABLE: "Posible estafa",
+  SIN_VALORAR: "Sin valorar",
 };
 
 /** Un modelo del catálogo de referencia. */

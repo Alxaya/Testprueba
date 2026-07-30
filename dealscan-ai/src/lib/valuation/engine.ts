@@ -1,5 +1,5 @@
 import { CATALOG_BY_SLUG, msrpForVariant } from "./catalog";
-import { formatEuros } from "../money";
+import { formatEuros, formatPercent } from "../money";
 import { evaluateSignals } from "./risk";
 import type {
   AnalysisReport,
@@ -475,6 +475,32 @@ function buildNegotiationPlan(args: {
   // Límite: por encima del precio justo + 4 % la compra deja de tener sentido.
   const walkAwayCents = Math.round(fairCents * 1.04);
 
+  const productName = [reference.brand, reference.model, attr.storageGb ? formatStorage(attr.storageGb) : null]
+    .filter(Boolean)
+    .join(" ");
+
+  // Cuando el vendedor ya pide menos que el objetivo, el consejo no es regatear
+  // sino cerrar: intentar rebajar un chollo es la forma más habitual de perderlo.
+  // Se devuelve un plan distinto en lugar de tres cifras iguales sin sentido.
+  if (askingCents <= targetCents) {
+    return {
+      targetCents,
+      openingOfferCents: askingCents,
+      walkAwayCents,
+      arguments: [
+        `El precio pedido (${fmtCents(askingCents)}) ya está por debajo del valor justo de esta unidad (${fmtCents(fairCents)}): no hay margen que ganar regateando, y sí una venta que perder.`,
+        "Responde rápido y sé el primero: en los anuncios por debajo de mercado la unidad se va en horas.",
+        "Invierte el esfuerzo en verificar, no en negociar: comprueba que enciende, que la cuenta del anterior propietario está borrada y que no hay bloqueo de operador.",
+        ...(attr.accessories.includes("Factura de compra")
+          ? []
+          : ["Pide la factura o el justificante de compra: es lo único que conviene reclamar a este precio."]),
+      ],
+      message:
+        `Hola, me interesa el ${productName}. Me encaja el precio que pides, así que por mí lo cerramos tal cual. ` +
+        "¿Cuándo te viene bien la entrega en mano? Puedo pasar hoy o mañana, pagar en el momento y comprobarlo allí mismo contigo.",
+    };
+  }
+
   const argumentsList: string[] = [];
 
   if (askingCents > fairCents) {
@@ -509,10 +535,6 @@ function buildNegotiationPlan(args: {
   argumentsList.push(
     "Hay unidades equivalentes publicadas en el mismo rango, así que el vendedor sabe que puede perder la venta si no ajusta.",
   );
-
-  const productName = [reference.brand, reference.model, attr.storageGb ? formatStorage(attr.storageGb) : null]
-    .filter(Boolean)
-    .join(" ");
 
   const reasons = [
     attr.damages.length > 0 ? attr.damages[0]!.toLowerCase() : null,
@@ -568,6 +590,10 @@ function buildExplanation(a: {
     CORRECTO: `El precio es correcto: los ${fmtCents(a.askingCents)} que se piden están dentro del rango de mercado para un ${name} en este estado (${fmtCents(a.fairCents)} de valor justo).`,
     CARO: `Está caro: se piden ${fmtCents(a.askingCents)} por un ${name} cuyo valor justo en este estado es de ${fmtCents(a.fairCents)}, un ${diffPct} % más de lo que debería costar.`,
     ESTAFA_PROBABLE: `Alto riesgo de fraude. Independientemente del precio, este anuncio acumula señales que apuntan a estafa (índice de riesgo ${a.scamRisk}/100). La recomendación es no seguir adelante.`,
+    // Inalcanzable en esta rama: si hay referencia de catálogo, siempre hay
+    // veredicto de precio. Se declara para que el mapa quede exhaustivo y
+    // añadir un estado nuevo obligue a decidir su texto.
+    SIN_VALORAR: `No se ha podido valorar el precio de este anuncio. El vendedor pide ${fmtCents(a.askingCents)}.`,
   };
 
   const summary =
@@ -579,8 +605,12 @@ function buildExplanation(a: {
     (a.attr.storageGb ? ` en su versión de ${formatStorage(a.attr.storageGb)}` : "") +
     ` (${a.reference.source.toLowerCase()}). Sobre ese precio se aplica la depreciación que corresponde a sus ${a.ageYears} ${a.ageYears === 1 ? "año" : "años"} de antigüedad —una retención del ${pct(a.retention)}, ajustada al comportamiento de ${a.reference.brand} en el mercado de segunda mano— y después el factor de estado y los ajustes por accesorios y daños concretos de esta unidad. ` +
     `El resultado es un valor de mercado de ${fmtCents(a.marketCents)} (rango habitual de publicación entre ${fmtCents(Math.round(a.marketCents * 0.89))} y ${fmtCents(Math.round(a.marketCents * 1.14))}) y un precio justo de ${fmtCents(a.fairCents)} para esta unidad en particular. ` +
-    (a.savingCents > 0
-      ? `Comprando a ${fmtCents(a.askingCents)} el ahorro frente al mercado es de ${fmtCents(a.savingCents)} (${a.savingPct} %).`
+    // Con riesgo de fraude, la diferencia de precio no se narra como un ahorro:
+    // el descuento es el gancho, no un beneficio para el comprador.
+    (a.verdict === "ESTAFA_PROBABLE" && a.savingCents > 0
+      ? `Se piden ${fmtCents(a.askingCents)}, un ${formatPercent(Math.abs(a.savingPct), 2)} por debajo de ese valor. Una diferencia de este tamaño en un anuncio con las señales detectadas no es una oportunidad: es el señuelo.`
+      : a.savingCents > 0
+      ? `Comprando a ${fmtCents(a.askingCents)} el ahorro frente al mercado es de ${fmtCents(a.savingCents)} (${formatPercent(a.savingPct, 2)}).`
       : `Comprando a ${fmtCents(a.askingCents)} se pagan ${fmtCents(-a.savingCents)} por encima del valor de mercado.`);
 
   const conditionParts: string[] = [
@@ -697,7 +727,9 @@ function unidentifiedReport(
       savingPct: 0,
       negotiationUpsideCents: 0,
     },
-    verdict: scamRisk >= VERDICT_THRESHOLDS.scamOverride ? "ESTAFA_PROBABLE" : "CORRECTO",
+    // Sin modelo identificado no hay juicio de precio posible: decir
+    // "correcto" sería afirmar algo que no se ha calculado.
+    verdict: scamRisk >= VERDICT_THRESHOLDS.scamOverride ? "ESTAFA_PROBABLE" : "SIN_VALORAR",
     score: clamp(Math.round((100 - scamRisk) * 0.5), 1, 55),
     buyProbability: clamp(Math.round((100 - scamRisk) * 0.6), 1, 70),
     scamRisk,

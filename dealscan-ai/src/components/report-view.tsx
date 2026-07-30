@@ -110,37 +110,60 @@ export function ReportView({
 
           <PriceScale report={report} />
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div
-              className={`rounded-xl p-4 ${report.pricing.savingCents >= 0 ? "bg-good-soft" : "bg-bad-soft"}`}
-            >
+          {/* En un anuncio con riesgo de fraude, un descuento enorme no es un
+              ahorro: es el gancho. Presentarlo en verde junto a un aviso de
+              estafa daría dos mensajes contradictorios, así que se enmarca
+              como lo que es. */}
+          {report.verdict === "ESTAFA_PROBABLE" ? (
+            <div className="mt-5 rounded-xl bg-bad-soft p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-                {report.pricing.savingCents >= 0 ? "Ahorro estimado" : "Sobreprecio"}
+                Diferencia frente al mercado
               </p>
-              <p
-                className={`tnum mt-1 text-2xl font-bold ${report.pricing.savingCents >= 0 ? "text-good" : "text-bad"}`}
-              >
+              <p className="tnum mt-1 text-2xl font-bold text-bad">
+                {report.pricing.savingCents >= 0 ? "−" : "+"}
                 {eur(Math.abs(report.pricing.savingCents))}
               </p>
               <p className="mt-0.5 text-xs text-text-muted">
-                {report.pricing.savingCents >= 0
-                  ? `Un ${Math.abs(report.pricing.savingPct).toFixed(1)} % por debajo del valor de mercado`
-                  : `Un ${Math.abs(report.pricing.savingPct).toFixed(1)} % por encima del valor de mercado`}
+                {report.pricing.savingCents > 0
+                  ? `Se pide un ${Math.abs(report.pricing.savingPct).toFixed(1)} % menos que el valor de mercado. Un descuento de este tamaño no es una oportunidad: es el señuelo habitual de un fraude.`
+                  : `Se pide un ${Math.abs(report.pricing.savingPct).toFixed(1)} % más que el valor de mercado, además del riesgo detectado.`}
               </p>
             </div>
+          ) : (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div
+                className={`rounded-xl p-4 ${report.pricing.savingCents >= 0 ? "bg-good-soft" : "bg-bad-soft"}`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+                  {report.pricing.savingCents >= 0 ? "Ahorro estimado" : "Sobreprecio"}
+                </p>
+                <p
+                  className={`tnum mt-1 text-2xl font-bold ${report.pricing.savingCents >= 0 ? "text-good" : "text-bad"}`}
+                >
+                  {eur(Math.abs(report.pricing.savingCents))}
+                </p>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  {report.pricing.savingCents >= 0
+                    ? `Un ${Math.abs(report.pricing.savingPct).toFixed(1)} % por debajo del valor de mercado`
+                    : `Un ${Math.abs(report.pricing.savingPct).toFixed(1)} % por encima del valor de mercado`}
+                </p>
+              </div>
 
-            <div className="rounded-xl bg-accent-soft p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
-                Margen de negociación
-              </p>
-              <p className="tnum mt-1 text-2xl font-bold text-accent">
-                {eur(report.pricing.negotiationUpsideCents)}
-              </p>
-              <p className="mt-0.5 text-xs text-text-muted">
-                Lo que se puede rebajar desde el precio pedido hasta el objetivo
-              </p>
+              <div className="rounded-xl bg-accent-soft p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+                  Margen de negociación
+                </p>
+                <p className="tnum mt-1 text-2xl font-bold text-accent">
+                  {eur(report.pricing.negotiationUpsideCents)}
+                </p>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  {report.pricing.negotiationUpsideCents > 0
+                    ? "Lo que se puede rebajar desde el precio pedido hasta el objetivo"
+                    : "El precio pedido ya está en el objetivo: no hay margen que negociar"}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <p className="mt-5 text-sm leading-relaxed text-text-muted">
             {report.explanation.priceReasoning}

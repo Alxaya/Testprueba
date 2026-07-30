@@ -17,6 +17,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "CORRECTO", label: "Precio correcto" },
   { value: "CARO", label: "Caros" },
   { value: "ESTAFA_PROBABLE", label: "Riesgo de estafa" },
+  { value: "SIN_VALORAR", label: "Sin valorar" },
 ];
 
 export default async function HistoryPage({

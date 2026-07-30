@@ -8,7 +8,7 @@ const querySchema = z.object({
   cursor: z.string().cuid().optional(),
   take: z.coerce.number().int().min(1).max(50).default(20),
   favorites: z.enum(["1", "0"]).optional(),
-  verdict: z.enum(["CHOLLO", "CORRECTO", "CARO", "ESTAFA_PROBABLE"]).optional(),
+  verdict: z.enum(["CHOLLO", "CORRECTO", "CARO", "ESTAFA_PROBABLE", "SIN_VALORAR"]).optional(),
   q: z.string().trim().max(120).optional(),
 });
 

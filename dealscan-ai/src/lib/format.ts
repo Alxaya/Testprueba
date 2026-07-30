@@ -56,6 +56,13 @@ export function verdictTone(verdict: Verdict): {
         border: "border-bad/30",
         label: "Posible estafa",
       };
+    case "SIN_VALORAR":
+      return {
+        text: "text-text-muted",
+        bg: "bg-surface-2",
+        border: "border-border",
+        label: "Sin valorar",
+      };
   }
 }
 

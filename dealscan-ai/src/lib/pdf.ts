@@ -191,6 +191,8 @@ function verdictColor(verdict: AnalysisReport["verdict"]) {
       return COLORS.warn;
     case "ESTAFA_PROBABLE":
       return COLORS.bad;
+    case "SIN_VALORAR":
+      return COLORS.muted;
   }
 }
 
