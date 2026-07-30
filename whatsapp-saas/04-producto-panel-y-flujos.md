@@ -50,31 +50,31 @@ Siete secciones. Ni una más. Cada sección que añadamos en el futuro tiene que
 │  Buenos días, Marta            Clínica Sonrisa  ▾    🔔 3    │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│   ┌────────────────────────────────────────────────────┐    │
-│   │  💰  Este mes Recepta te ha generado               │    │
-│   │                                                     │    │
-│   │            3.480 €                                  │    │
-│   │      ▲ 22 % más que el mes pasado                   │    │
-│   │                                     [Ver detalle →] │    │
-│   └────────────────────────────────────────────────────┘    │
+│   ┌────────────────────────────────────────────────────┐     │
+│   │ 💰  Este mes Recepta te ha generado                │     │
+│   │                                                    │     │
+│   │            3.480 €                                 │     │
+│   │      ▲ 22 % más que el mes pasado                  │     │
+│   │                                    [Ver detalle →] │     │
+│   └────────────────────────────────────────────────────┘     │
 │                                                              │
 │   ⚠️  NECESITAN QUE MIRES ESTO                    (2)        │
-│   ┌────────────────────────────────────────────────────┐    │
-│   │ 🔴 Carmen R. — "me duele mucho, es urgente"         │    │
-│   │    hace 4 min · el asistente ha parado y te avisa   │    │
-│   │                                      [Responder]    │    │
-│   ├────────────────────────────────────────────────────┤    │
-│   │ 🟠 Javier M. — pregunta por financiación            │    │
-│   │    hace 25 min · fuera del conocimiento cargado     │    │
-│   │                              [Responder] [Enseñar]  │    │
-│   └────────────────────────────────────────────────────┘    │
+│   ┌────────────────────────────────────────────────────┐     │
+│   │ 🔴 Carmen R. — "me duele mucho, es urgente"        │     │
+│   │    hace 4 min · el asistente ha parado y te avisa  │     │
+│   │                                     [Responder]    │     │
+│   ├────────────────────────────────────────────────────┤     │
+│   │ 🟠 Javier M. — pregunta por financiación           │     │
+│   │    hace 25 min · fuera del conocimiento cargado    │     │
+│   │                             [Responder] [Enseñar]  │     │
+│   └────────────────────────────────────────────────────┘     │
 │                                                              │
 │   HOY                                                        │
-│   ┌───────────┬───────────┬───────────┬───────────┐         │
-│   │    18     │    14     │     2     │     1     │         │
-│   │  citas    │ atendidas │ mensajes  │  hueco    │         │
-│   │           │  por IA   │ pendientes│  libre    │         │
-│   └───────────┴───────────┴───────────┴───────────┘         │
+│   ┌───────────┬───────────┬───────────┬───────────┐          │
+│   │    18     │    14     │     2     │     1     │          │
+│   │  citas    │ atendidas │ mensajes  │  hueco    │          │
+│   │           │  por IA   │ pendientes│  libre    │          │
+│   └───────────┴───────────┴───────────┴───────────┘          │
 │                                                              │
 │   ✅ El asistente está activo · responde en ~8 segundos      │
 │      WhatsApp conectado · calidad ALTA 🟢                    │
@@ -91,8 +91,8 @@ Siete secciones. Ni una más. Cada sección que añadamos en el futuro tiene que
 
 ```
 ┌────────────────┬─────────────────────────────────────────────┐
-│ 🔴 Necesita    │  Carmen Ruiz · +34 6•• ••• 412               │
-│    ayuda (2)   │  Paciente desde 2023 · 7 citas · 0 ausencias │
+│ 🔴 Necesita    │  Carmen Ruiz · +34 6•• ••• 412              │
+│    ayuda (2)   │  Paciente desde 2023 · 7 citas · 0 ausencias│
 │ 🤖 IA (34)     ├─────────────────────────────────────────────┤
 │ 👤 Míos (3)    │                                             │
 │ ✓ Cerradas     │  Carmen · 21:14                             │
@@ -101,7 +101,7 @@ Siete secciones. Ni una más. Cada sección que añadamos en el futuro tiene que
 │ 🔴 Carmen R.   │  │ semana para una limpieza?      │         │
 │    urgente     │  └────────────────────────────────┘         │
 │ 🟠 Javier M.   │                                             │
-│ 🤖 Ana L.      │                     🤖 Asistente · 21:14    │
+│ 🤖 Ana L.      │                      🤖 Asistente · 21:14   │
 │ 🤖 Pedro S.    │         ┌─────────────────────────────────┐ │
 │ 👤 Luis F.     │         │ ¡Hola Carmen! Sí 😊 Para        │ │
 │                │         │ higiene dental (45 min) tengo:  │ │
@@ -139,21 +139,21 @@ Siete secciones. Ni una más. Cada sección que añadamos en el futuro tiene que
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  Resultados          [Este mes ▾]        [Descargar PDF]      │
+│  Resultados          [Este mes ▾]        [Descargar PDF]     │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│              3.480 €  generados en julio                     │
-│              ────────────────────────────                    │
-│              Coste de Recepta: 89 €  →  Retorno: 39×         │
+│             3.480 €  generados en julio                      │
+│             ────────────────────────────                     │
+│             Coste de Recepta: 89 €  →  Retorno: 39×          │
 │                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ Ausencias evitadas          14 citas        1.960 €  → │ │
-│  │ Huecos rellenados            9 citas        1.080 €  → │ │
-│  │ Citas fuera de horario       4 citas          440 €  → │ │
-│  │ Pacientes reactivados        0 citas            0 €  → │ │
-│  │                                          ─────────     │ │
-│  │                                           3.480 €      │ │
-│  └────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Ausencias evitadas          14 citas        1.960 €  → │  │
+│  │ Huecos rellenados            9 citas        1.080 €  → │  │
+│  │ Citas fuera de horario       4 citas          440 €  → │  │
+│  │ Pacientes reactivados        0 citas            0 €  → │  │
+│  │                                         ─────────      │  │
+│  │                                          3.480 €       │  │
+│  └────────────────────────────────────────────────────────┘  │
 │                                                              │
 │  TU TASA DE AUSENCIAS                                        │
 │    Antes de Recepta   ████████████████░░  16 %               │
