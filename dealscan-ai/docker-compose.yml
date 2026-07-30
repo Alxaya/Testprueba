@@ -1,0 +1,75 @@
+# DealScan AI — entorno completo con un solo comando.
+# ---------------------------------------------------------------------------
+#   docker compose up --build
+#
+# Levanta PostgreSQL, aplica las migraciones, carga el catálogo de referencia y
+# arranca la aplicación en http://localhost:3000
+#
+# Las credenciales opcionales (IA y Stripe) se leen del fichero .env del
+# directorio. Sin ellas la aplicación arranca igual: el análisis funciona con el
+# motor determinista y las rutas de pago avisan de qué variable falta.
+# ---------------------------------------------------------------------------
+
+name: dealscan-ai
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dealscan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dealscan}
+      POSTGRES_DB: dealscan
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      # Expuesto para poder inspeccionar la base desde el host.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dealscan -d dealscan"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # Aplica migraciones y carga el catálogo. Termina y no vuelve a arrancar.
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: >
+      sh -c "npx prisma migrate deploy && npx prisma db seed"
+    environment:
+      DATABASE_URL: postgresql://dealscan:${POSTGRES_PASSWORD:-dealscan}@db:5432/dealscan?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://dealscan:${POSTGRES_PASSWORD:-dealscan}@db:5432/dealscan?schema=public
+      # AUTH_SECRET es obligatorio: genera uno con `openssl rand -base64 48`
+      AUTH_SECRET: ${AUTH_SECRET:?Define AUTH_SECRET en .env — genéralo con openssl rand -base64 48}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_ID_PREMIUM_MONTHLY: ${STRIPE_PRICE_ID_PREMIUM_MONTHLY:-}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      FREE_DAILY_LIMIT: ${FREE_DAILY_LIMIT:-5}
+      ANONYMOUS_DAILY_LIMIT: ${ANONYMOUS_DAILY_LIMIT:-3}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:

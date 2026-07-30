@@ -1,0 +1,230 @@
+// DealScan AI — esquema de datos.
+// PostgreSQL + Prisma. Todos los precios se guardan en céntimos de euro (Int)
+// para evitar errores de coma flotante en cálculos monetarios.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  NONE
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+}
+
+enum InputKind {
+  URL
+  TEXT
+  IMAGE
+}
+
+enum Verdict {
+  CHOLLO // ganga clara
+  CORRECTO // precio de mercado
+  CARO // por encima de mercado
+  ESTAFA_PROBABLE // señales de fraude dominantes
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  email                String             @unique
+  name                 String?
+  passwordHash         String
+  plan                 Plan               @default(FREE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  subscriptionStatus   SubscriptionStatus @default(NONE)
+  currentPeriodEnd     DateTime?
+  emailVerifiedAt      DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  analyses    Analysis[]
+  favorites   Favorite[]
+  comparisons Comparison[]
+  sessions    Session[]
+  usage       DailyUsage[]
+
+  @@index([stripeCustomerId])
+}
+
+/// Sesiones persistidas: permiten revocación real del token (logout global,
+/// cambio de contraseña) en lugar de confiar solo en la expiración del JWT.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Contador de cuota diaria (plan gratuito: 5 análisis/día).
+model DailyUsage {
+  id     String   @id @default(cuid())
+  userId String
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([day])
+}
+
+/// Catálogo de referencia de productos. Es la fuente de verdad del motor de
+/// valoración: se actualiza con datos reales de mercado (script de importación
+/// o panel de administración), nunca con valores inventados en tiempo de análisis.
+model ProductReference {
+  id           String   @id @default(cuid())
+  category     String // phone | tablet | laptop | watch | console
+  brand        String
+  model        String
+  slug         String   @unique
+  releaseYear  Int
+  msrpCents    Int // PVP oficial de lanzamiento (variante base), en céntimos
+  storageTiers Json // [{ gb: 128, deltaCents: 0 }, ...]
+  aliases      String[] // formas alternativas de escribir el modelo en anuncios
+  source       String // procedencia del dato de referencia
+  updatedAt    DateTime @updatedAt
+
+  @@index([category])
+  @@index([brand])
+}
+
+model Analysis {
+  id     String  @id @default(cuid())
+  userId String?
+
+  // Entrada
+  inputKind    InputKind
+  sourceUrl    String?
+  rawText      String?   @db.Text
+  imageCount   Int       @default(0)
+  askingCents  Int // precio pedido por el vendedor
+  currency     String    @default("EUR")
+
+  // Producto identificado
+  category     String?
+  brand        String?
+  model        String?
+  storageGb    Int?
+  color        String?
+  conditionKey String? // new | like_new | good | fair | poor
+  accessories  String[]
+
+  // Resultado
+  marketCents      Int
+  marketLowCents   Int
+  marketHighCents  Int
+  fairCents        Int // precio justo para este estado concreto
+  targetCents      Int // precio recomendado para negociar
+  offerCents       Int // primera oferta recomendada
+  savingCents      Int // ahorro estimado frente a mercado
+  verdict          Verdict
+  score            Int // 0-100
+  buyProbability   Int // 0-100
+  scamRisk         Int // 0-100
+  confidence       Int // 0-100
+
+  /// Informe completo tipado (señales, riesgos, desglose de cálculo,
+  /// explicación y evidencias). Ver `src/lib/valuation/types.ts`.
+  report Json
+
+  aiModel    String?
+  aiUsedFor  String[] // extraction | vision | narrative
+  durationMs Int?
+
+  shareToken   String?   @unique
+  sharedAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  // Opcional: un análisis hecho sin cuenta no pertenece a ningún usuario.
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favorite  Favorite?
+  images    AnalysisImage[]
+  compareIn ComparisonItem[]
+
+  @@index([userId, createdAt])
+  @@index([shareToken])
+}
+
+model AnalysisImage {
+  id         String   @id @default(cuid())
+  analysisId String
+  /// Hash SHA-256 del contenido: deduplica subidas y evita almacenar la imagen
+  /// original cuando no es necesario conservarla.
+  sha256     String
+  mimeType   String
+  bytes      Int
+  width      Int?
+  height     Int?
+  storageKey String? // clave en el almacenamiento de objetos (S3/R2), si se conserva
+  createdAt  DateTime @default(now())
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  analysisId String   @unique
+  note       String?
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Comparison {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ComparisonItem[]
+
+  @@index([userId, createdAt])
+}
+
+model ComparisonItem {
+  id           String @id @default(cuid())
+  comparisonId String
+  analysisId   String
+  position     Int
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  analysis   Analysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, analysisId])
+}
+
+/// Log de eventos de Stripe ya procesados: garantiza idempotencia del webhook.
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}

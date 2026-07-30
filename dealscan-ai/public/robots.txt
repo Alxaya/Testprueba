@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+# Los informes compartidos no deben indexarse: contienen datos de anuncios
+# concretos y su enlace es la credencial de acceso.
+Disallow: /informe/
+Disallow: /analisis/
+Disallow: /panel/
+Disallow: /api/

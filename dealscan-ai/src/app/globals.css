@@ -1,0 +1,316 @@
+@import "tailwindcss";
+
+/**
+ * Sistema de diseño de DealScan AI.
+ *
+ * Los colores se declaran como variables CSS con dos temas (claro y oscuro).
+ * El tema se resuelve así:
+ *   1. `prefers-color-scheme` del sistema, como valor por defecto.
+ *   2. `data-theme="light|dark"` en <html>, que gana si el usuario ha elegido.
+ * El atributo lo escribe un script inline en el <head> para que no haya
+ * parpadeo de tema en la primera pintada.
+ */
+
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+
+  --color-brand-50: oklch(0.97 0.02 172);
+  --color-brand-100: oklch(0.93 0.05 172);
+  --color-brand-200: oklch(0.87 0.09 172);
+  --color-brand-300: oklch(0.79 0.13 172);
+  --color-brand-400: oklch(0.71 0.15 172);
+  --color-brand-500: oklch(0.63 0.15 172);
+  --color-brand-600: oklch(0.54 0.13 172);
+  --color-brand-700: oklch(0.45 0.11 172);
+  --color-brand-800: oklch(0.36 0.08 172);
+  --color-brand-900: oklch(0.28 0.06 172);
+}
+
+:root {
+  --bg: oklch(0.99 0.003 240);
+  --bg-subtle: oklch(0.975 0.005 240);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.98 0.004 240);
+  --border: oklch(0.91 0.008 240);
+  --border-strong: oklch(0.84 0.012 240);
+  --text: oklch(0.22 0.02 250);
+  --text-muted: oklch(0.52 0.015 250);
+  --text-faint: oklch(0.65 0.012 250);
+  --accent: oklch(0.52 0.13 172);
+  --accent-hover: oklch(0.46 0.12 172);
+  --accent-soft: oklch(0.95 0.03 172);
+  --accent-contrast: oklch(0.99 0 0);
+  --good: oklch(0.55 0.15 155);
+  --good-soft: oklch(0.95 0.04 155);
+  --warn: oklch(0.65 0.15 70);
+  --warn-soft: oklch(0.96 0.05 80);
+  --bad: oklch(0.55 0.2 25);
+  --bad-soft: oklch(0.96 0.04 25);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 250 / 0.06), 0 1px 3px oklch(0.2 0.02 250 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.02 250 / 0.07), 0 2px 4px oklch(0.2 0.02 250 / 0.04);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.02 250 / 0.1), 0 4px 8px oklch(0.2 0.02 250 / 0.05);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.17 0.015 255);
+    --bg-subtle: oklch(0.2 0.017 255);
+    --surface: oklch(0.22 0.018 255);
+    --surface-2: oklch(0.25 0.02 255);
+    --border: oklch(0.31 0.02 255);
+    --border-strong: oklch(0.4 0.022 255);
+    --text: oklch(0.96 0.005 250);
+    --text-muted: oklch(0.72 0.012 250);
+    --text-faint: oklch(0.58 0.014 250);
+    --accent: oklch(0.72 0.14 172);
+    --accent-hover: oklch(0.79 0.14 172);
+    --accent-soft: oklch(0.3 0.05 172);
+    --accent-contrast: oklch(0.16 0.02 255);
+    --good: oklch(0.75 0.16 155);
+    --good-soft: oklch(0.29 0.06 155);
+    --warn: oklch(0.8 0.14 80);
+    --warn-soft: oklch(0.32 0.06 80);
+    --bad: oklch(0.7 0.18 25);
+    --bad-soft: oklch(0.31 0.07 25);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+    --shadow-md: 0 4px 12px oklch(0 0 0 / 0.35);
+    --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.45);
+    color-scheme: dark;
+  }
+}
+
+/* La elección explícita del usuario gana sobre el sistema, en ambos sentidos. */
+:root[data-theme="light"] {
+  --bg: oklch(0.99 0.003 240);
+  --bg-subtle: oklch(0.975 0.005 240);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.98 0.004 240);
+  --border: oklch(0.91 0.008 240);
+  --border-strong: oklch(0.84 0.012 240);
+  --text: oklch(0.22 0.02 250);
+  --text-muted: oklch(0.52 0.015 250);
+  --text-faint: oklch(0.65 0.012 250);
+  --accent: oklch(0.52 0.13 172);
+  --accent-hover: oklch(0.46 0.12 172);
+  --accent-soft: oklch(0.95 0.03 172);
+  --accent-contrast: oklch(0.99 0 0);
+  --good: oklch(0.55 0.15 155);
+  --good-soft: oklch(0.95 0.04 155);
+  --warn: oklch(0.65 0.15 70);
+  --warn-soft: oklch(0.96 0.05 80);
+  --bad: oklch(0.55 0.2 25);
+  --bad-soft: oklch(0.96 0.04 25);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.02 250 / 0.06), 0 1px 3px oklch(0.2 0.02 250 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.02 250 / 0.07), 0 2px 4px oklch(0.2 0.02 250 / 0.04);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.02 250 / 0.1), 0 4px 8px oklch(0.2 0.02 250 / 0.05);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: oklch(0.17 0.015 255);
+  --bg-subtle: oklch(0.2 0.017 255);
+  --surface: oklch(0.22 0.018 255);
+  --surface-2: oklch(0.25 0.02 255);
+  --border: oklch(0.31 0.02 255);
+  --border-strong: oklch(0.4 0.022 255);
+  --text: oklch(0.96 0.005 250);
+  --text-muted: oklch(0.72 0.012 250);
+  --text-faint: oklch(0.58 0.014 250);
+  --accent: oklch(0.72 0.14 172);
+  --accent-hover: oklch(0.79 0.14 172);
+  --accent-soft: oklch(0.3 0.05 172);
+  --accent-contrast: oklch(0.16 0.02 255);
+  --good: oklch(0.75 0.16 155);
+  --good-soft: oklch(0.29 0.06 155);
+  --warn: oklch(0.8 0.14 80);
+  --warn-soft: oklch(0.32 0.06 80);
+  --bad: oklch(0.7 0.18 25);
+  --bad-soft: oklch(0.31 0.07 25);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.35);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.45);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tipografía numérica tabular: las cifras del informe no bailan al cambiar. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@utility card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 0.625rem 1.125rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease,
+    opacity 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@utility btn-primary {
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid transparent;
+
+  &:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-ghost {
+  background-color: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+
+  &:hover:not(:disabled) {
+    background-color: var(--surface-2);
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+@utility input-base {
+  width: 100%;
+  background-color: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+
+@keyframes dealscan-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: dealscan-rise 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dealscan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: dealscan-spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+}
