@@ -1,0 +1,201 @@
+# Guion: "La última tarde" — voz en off narrativa
+#
+# Formato:
+#   - Cada bloque de texto se sintetiza por separado.
+#   - Una línea [[n]] entre bloques fija el silencio en segundos que va DESPUÉS
+#     del bloque anterior. Si no hay marca, se usa la pausa por defecto.
+#   - Las líneas que empiezan por # son comentarios y no se locutan.
+#
+# El texto es literal: no se altera ni una palabra del guion original.
+
+# ── 1. La tarde ──────────────────────────────────────────────────────────────
+
+Hubo una tarde, cuando eras niño, en la que saliste a jugar a la calle.
+[[1.35]]
+
+Y fue la última vez.
+[[1.8]]
+
+No lo supiste. Nadie te lo dijo. No hubo despedida, ni foto, ni nadie que dijera "aprovecha, que esta es la última".
+[[1.2]]
+
+Volviste a casa. Cenaste. Te fuiste a dormir pensando en cualquier otra cosa.
+[[1.2]]
+
+Y ya no volviste a salir.
+[[1.8]]
+
+# ── 2. Esa tarde existió ─────────────────────────────────────────────────────
+
+Piénsalo un segundo, porque esa tarde existió.
+[[1.2]]
+
+Tuvo una fecha concreta. Un día de la semana. Hacía un tiempo determinado. Llevabas una ropa concreta y había una luz concreta cuando tu madre te llamó para que subieras.
+[[1.2]]
+
+Estuviste allí. Fuiste tú.
+[[1.2]]
+
+Y no tienes ni idea de cuál fue.
+[[1.8]]
+
+Es probable que fuera una tarde perfectamente normal. Ni la mejor ni la peor. Una tarde olvidable, y por eso la olvidaste.
+[[1.12]]
+
+Al día siguiente pasó algo. Llovió. O tenías deberes. O quedaste con alguien. O simplemente no te apeteció.
+[[0.98]]
+
+Y al otro día, otra cosa.
+[[1.05]]
+
+Y así, sin ningún día concreto en el que ocurriera, dejaste de bajar.
+[[1.42]]
+
+Eso es lo raro de esa tarde: no terminó. Se deshizo.
+[[1.8]]
+
+# ── 3. Las otras últimas veces ───────────────────────────────────────────────
+
+Y no fue la única.
+[[1.2]]
+
+Hubo una última vez que tu padre te llevó a hombros. Un día te bajó al suelo y no volvió a levantarte nunca más. Ninguno de los dos lo supo en ese momento.
+[[1.2]]
+
+Hubo un último día que jugaste con tu mejor amigo de la infancia. Os despedisteis como cualquier otra tarde. "Hasta mañana." Y ese mañana no llegó igual.
+[[1.2]]
+
+Hubo una última vez que te creíste algo que ahora te parece imposible haberte creído.
+[[0.98]]
+
+Una última vez que te quedaste dormido en el coche y alguien te subió en brazos a la cama.
+[[0.98]]
+
+Una última vez que un año te pareció larguísimo.
+[[1.42]]
+
+Todas ocurrieron. Todas tuvieron fecha. Ninguna se marcó.
+[[1.8]]
+
+# ── 4. Principios contra finales ─────────────────────────────────────────────
+
+Y aquí está lo interesante, porque no es casualidad.
+[[1.2]]
+
+Fíjate en todo lo que tenemos preparado para los principios.
+[[0.98]]
+
+El primer diente. El primer día de colegio, con la mochila enorme y la foto en la puerta. El primer trabajo. La primera vez que alguien conduce solo. Hay fotos, hay fiestas, hay gente aplaudiendo.
+[[1.2]]
+
+Ahora intenta recordar una sola ceremonia para un final.
+[[1.42]]
+
+No la hay.
+[[1.65]]
+
+Nadie hace una foto del último día que un niño juega en la calle. Nadie lo celebra. Ni siquiera se sabe que está ocurriendo.
+[[1.42]]
+
+Y hay una razón concreta para eso.
+[[1.2]]
+
+Una primera vez se nota mientras pasa. Sabes que es la primera porque antes no había ninguna.
+[[1.05]]
+
+Una última vez no. Una última vez no se convierte en última hasta mucho después, hasta que pasan los años suficientes sin que se repita.
+[[1.2]]
+
+Es un título que se otorga hacia atrás. En el momento, era simplemente una tarde.
+[[1.42]]
+
+Por eso nunca las ves venir. No es que no estés atento. Es que en ese instante, todavía no lo son.
+[[1.8]]
+
+# ── 5. Lo que se acabó sin avisar ────────────────────────────────────────────
+
+Pero hay algo más grande debajo de esto.
+[[1.2]]
+
+Durante prácticamente toda la historia de la humanidad, los niños se movieron solos por el mundo.
+[[1.12]]
+
+No es una exageración ni nostalgia. Es literal. Miles de años de niños recorriendo campos, bosques, aldeas y calles sin ningún adulto mirando. Volviendo a casa cuando anochecía. Perdiéndose. Encontrándose. Resolviendo sus propias peleas.
+[[1.2]]
+
+No era una forma de crianza. Era simplemente cómo funcionaba la infancia. En todas partes.
+[[1.2]]
+
+Y eso se acabó en aproximadamente dos generaciones.
+[[1.65]]
+
+Los investigadores que estudian esto miden algo llamado radio de movimiento: hasta dónde puede alejarse un niño de su casa sin un adulto. Al comparar generaciones dentro de una misma familia, la diferencia es brutal. Los bisabuelos se movían por kilómetros. Los niños de hoy, en muchos sitios, no salen del portal.
+[[1.42]]
+
+Así que tu última tarde en la calle no fue solo tuya.
+[[1.2]]
+
+Estabas en el final de algo mucho más largo que tú. Una forma de ser niño que había durado desde que existen los niños, y que se apagó justo mientras tú dejabas de bajar.
+[[1.2]]
+
+No te enteraste. Nadie se enteró. Cada uno dejó de salir por su cuenta, por sus propias razones pequeñas, la lluvia, los deberes, la desgana, y entre todos cerramos algo enorme sin darnos cuenta.
+[[1.8]]
+
+# ── 6. La parte incómoda ─────────────────────────────────────────────────────
+
+Y ahora la parte incómoda.
+[[1.2]]
+
+Esto no es algo que te pasó. Es algo que te está pasando.
+[[1.65]]
+
+En este momento, en tu vida, hay cosas que están ocurriendo por última vez.
+[[1.42]]
+
+Hay alguien a quien vas a ver por última vez este año y no lo sabes. No porque vaya a pasar nada grave, simplemente porque la vida os va a separar despacio, sin ningún día concreto en el que ocurra.
+[[1.2]]
+
+Hay un sitio al que no volverás. Una costumbre que vas a dejar sin decidirlo. Una conversación que no se repetirá.
+[[1.42]]
+
+Ya has tenido varias últimas veces este año.
+[[1.42]]
+
+No sabes cuáles. Nunca lo sabrás. Solo dentro de mucho tiempo, si acaso, mirarás atrás y pensarás: aquella fue.
+[[1.8]]
+
+# ── 7. El giro ───────────────────────────────────────────────────────────────
+
+Y no te cuento esto para que te pongas triste. Al revés.
+[[1.2]]
+
+Porque hay una conclusión rara escondida aquí.
+[[1.2]]
+
+Si esa última tarde en la calle hubiera estado señalada, si alguien hubiera salido a decirte "oye, esta es la última, disfrútala", la habrías vivido de otra forma. Con solemnidad. Pendiente de guardarla.
+[[1.2]]
+
+Y probablemente habría sido peor.
+[[1.65]]
+
+Lo que hizo buena esa tarde fue exactamente que no significaba nada. Que había otras mil detrás. Que podías desperdiciarla entera.
+[[1.42]]
+
+Las cosas importantes de tu vida no se anuncian. Pasan disfrazadas de tarde normal.
+[[1.65]]
+
+Y esa es toda la diferencia entre mirar tu vida como una sucesión de días que hay que aprovechar, y entender que la mayoría de lo bueno que te ha pasado, te pasó mientras no prestabas atención.
+[[1.8]]
+
+# ── 8. Cierre ────────────────────────────────────────────────────────────────
+
+Hubo una tarde en la que saliste a jugar por última vez.
+[[1.42]]
+
+Ojalá fuera aburrida.
+[[1.95]]
+
+Si te acuerdas de la tuya, o de cualquier última vez que solo reconociste años después, escríbela abajo.
+[[1.2]]
+
+No para que te conteste yo. Para que la escribas tú.
