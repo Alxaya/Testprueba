@@ -1,7 +1,7 @@
 # 04 — Roadmap por fases
 
 **Regla del proyecto:** no se empieza una fase si la anterior no ha pasado su auditoría.
-Cada fase termina con el mismo ritual de cierre (§ *Auditoría de fase*), y su
+Cada fase termina con el mismo ritual de cierre (§ _Auditoría de fase_), y su
 **Definición de Hecho (DoD)** es una lista de comprobaciones objetivas, no una opinión.
 
 ---
@@ -14,7 +14,7 @@ Cada fase termina con el mismo ritual de cierre (§ *Auditoría de fase*), y su
 3. **Seguridad** — ¿alguna consulta sin RLS? ¿algún `input` sin validar? ¿algún secreto expuesto al
    cliente? ¿alguna ruta sin comprobación de rol?
 4. **Rendimiento** — consultas N+1, índices que faltan, `useEffect` innecesarios, JS enviado al
-   cliente, tamaño del *bundle* frente al presupuesto de la §7 del doc 01.
+   cliente, tamaño del _bundle_ frente al presupuesto de la §7 del doc 01.
 5. **Refactor** — duplicación eliminada, nombres correctos, ficheros muertos borrados,
    dependencias sin uso desinstaladas.
 6. **Accesibilidad** — teclado, foco, contraste, lectores de pantalla en las pantallas nuevas.
@@ -44,18 +44,18 @@ Los tests de aislamiento entre organizaciones pasan para **todas** las tablas.
 
 ---
 
-## F1 · Autenticación, organización y *shell*
+## F1 · Autenticación, organización y _shell_
 
 - Registro / acceso (email + contraseña, y OAuth con Google).
 - Creación automática de organización en el primer acceso (trigger + RPC transaccional).
-- *Onboarding*: nombre del negocio, oficio principal, NIF, logo, perfil fiscal.
+- _Onboarding_: nombre del negocio, oficio principal, NIF, logo, perfil fiscal.
 - Middleware de sesión, protección de rutas, refresco de token.
-- *Shell* de la aplicación: barra lateral, barra superior, selector de organización, menú de usuario.
+- _Shell_ de la aplicación: barra lateral, barra superior, selector de organización, menú de usuario.
 - Invitaciones por email y gestión de roles (owner / admin / member).
 - Primitivas de UI sobre Radix: Button, Input, Select, Dialog, Sheet, Toast, Tooltip, DropdownMenu,
   Skeleton, EmptyState — todas con estados de foco, error y carga.
 
-**DoD:** un usuario nuevo se registra, completa el *onboarding* y ve el dashboard vacío bien diseñado.
+**DoD:** un usuario nuevo se registra, completa el _onboarding_ y ve el dashboard vacío bien diseñado.
 E2E: registro → onboarding → dashboard. Un usuario de la organización A no puede ver nada de la B
 (verificado por test, no por inspección).
 
@@ -63,17 +63,17 @@ E2E: registro → onboarding → dashboard. Un usuario de la organización A no 
 
 ## F2 · Motor de IA
 
-- `lib/ai`: interfaz `LlmProvider`, registro, política de enrutado por *tier*, coste, reintentos,
-  *failover*, caché, contabilidad en `ai_requests`.
+- `lib/ai`: interfaz `LlmProvider`, registro, política de enrutado por _tier_, coste, reintentos,
+  _failover_, caché, contabilidad en `ai_requests`.
 - Implementaciones: Anthropic, OpenAI, Google (las tres, para demostrar que el adaptador funciona).
 - `features/ai/trades`: los 9 oficios + genérico, con sus slots y catálogos base.
 - Motor de entrevista: clasificar → extraer → completitud → preguntar.
 - Endpoint `/api/ai/interview` y `/api/ai/generate` con SSE.
 - UI de la entrevista: **una pantalla, chips pulsables**, barra de completitud,
   botón "generar con lo que hay".
-- Generación con *streaming* y parseo parcial (las secciones aparecen a medida que llegan).
+- Generación con _streaming_ y parseo parcial (las secciones aparecen a medida que llegan).
 - Validación posterior: rangos de precio, coherencia, deduplicación, enganche con el catálogo.
-- Arnés de evals + *golden set* inicial.
+- Arnés de evals + _golden set_ inicial.
 
 **DoD:** "Instalar un termo eléctrico de 100 litros" produce preguntas correctas y, tras responderlas,
 un presupuesto estructurado válido. Los evals superan los umbrales del doc 03, §6.
@@ -86,7 +86,7 @@ Cambiar de proveedor es cambiar una variable de entorno — demostrado en test.
 - `pricing.ts`: `computeTotals` puro, con tests exhaustivos (IVA 21/10/4/7, IRPF, recargo de
   equivalencia, redondeos, descuentos).
 - Editor: líneas arrastrables, edición en línea, autocompletado desde el catálogo, cálculo en vivo.
-- Autoguardado con *debounce* + versión optimista + detección de conflicto (doc 01, §5).
+- Autoguardado con _debounce_ + versión optimista + detección de conflicto (doc 01, §5).
 - Historial de cambios con vista de diferencias y restauración.
 - Duplicar presupuesto. Guardar como plantilla. Aplicar plantilla.
 - Máquina de estados: borrador → listo → enviado → visto → aceptado/rechazado/caducado.
@@ -99,8 +99,8 @@ Editar en dos pestañas produce un aviso de conflicto, nunca pérdida silenciosa
 
 ## F4 · PDF
 
-- Motor de *layout* declarativo sobre `pdf-lib`: bloques, medición, paginación, cabecera/pie.
-- Fuentes TTF embebidas con *subsetting* (acentos, ñ, €).
+- Motor de _layout_ declarativo sobre `pdf-lib`: bloques, medición, paginación, cabecera/pie.
+- Fuentes TTF embebidas con _subsetting_ (acentos, ñ, €).
 - Tres plantillas: Clásica, Moderna, Minimal. Logo y color de acento de la organización.
 - Numeración "página X de Y", secciones de garantía, condiciones, supuestos y exclusiones.
 - Almacenamiento en Storage privado, caché por hash de contenido, descarga con URL firmada.
@@ -157,7 +157,7 @@ webhooks repetidos y desordenados. Superar la cuota bloquea en servidor, no solo
 - Landing pública: propuesta de valor, demo interactiva, precios, testimonios, FAQ.
 - **SEO programático**: `/presupuesto-electricista`, `/presupuesto-fontanero`, … una página por oficio,
   con metadatos, datos estructurados JSON-LD, `sitemap.xml`, `robots.txt`, Open Graph dinámico.
-- Sistema de movimiento: transiciones de página, entradas escalonadas de listas, *layout animations*,
+- Sistema de movimiento: transiciones de página, entradas escalonadas de listas, _layout animations_,
   microinteracciones en botones y estados, transiciones de vista. Todo respetando `prefers-reduced-motion`.
 - Móvil: navegación inferior, hojas deslizantes, gestos, objetivos táctiles ≥ 44 px, PWA instalable.
 - Auditoría de accesibilidad WCAG 2.2 AA completa.
@@ -170,12 +170,12 @@ cumplido. Probado en iPhone SE (pantalla pequeña real) y en Android de gama med
 ## F9 · Endurecimiento y lanzamiento
 
 - Sentry, logs estructurados, PostHog con el embudo de activación.
-- Cabeceras de seguridad (CSP estricta), *rate limiting* en todas las rutas públicas.
+- Cabeceras de seguridad (CSP estricta), _rate limiting_ en todas las rutas públicas.
 - Pruebas de carga: 100 usuarios concurrentes generando presupuestos.
 - Copias de seguridad y ensayo real de restauración (una copia sin restauración probada no es una copia).
 - RGPD: exportación y borrado de datos, política de privacidad, registro de tratamientos, cookies.
 - Estados legales: aviso de que la herramienta no sustituye asesoría fiscal.
-- *Runbook* de incidentes y guía de despliegue.
+- _Runbook_ de incidentes y guía de despliegue.
 
 **DoD:** revisión de seguridad completa sin hallazgos de severidad alta o media. Restauración de copia
 verificada. Alertas configuradas y probadas.
@@ -191,4 +191,4 @@ F0 ──► F1 ──► F2 ──► F3 ──► F4 ──► F5 ──► F6
 
 F2 y F3 son el corazón del producto: si algo debe llevarse el tiempo extra, es ahí.
 F8 no es "maquillaje": en este mercado el diseño es parte del argumento de venta — el usuario compra
-la herramienta porque el PDF que manda a *su* cliente le hace parecer más profesional.
+la herramienta porque el PDF que manda a _su_ cliente le hace parecer más profesional.

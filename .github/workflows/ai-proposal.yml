@@ -1,0 +1,104 @@
+name: CI · AI Proposal
+
+on:
+  push:
+    branches: ['**']
+    paths: ['ai-proposal/**', '.github/workflows/ci.yml']
+  pull_request:
+    paths: ['ai-proposal/**']
+
+defaults:
+  run:
+    working-directory: ai-proposal
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Tipos, lint, formato y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-proposal/package-lock.json
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+  database:
+    name: Migraciones y aislamiento RLS
+    runs-on: ubuntu-latest
+
+    # Postgres puro en lugar del stack completo de Supabase: arranca en segundos
+    # en vez de minutos, y las políticas RLS son SQL estándar. El esquema `auth`
+    # se emula en supabase/tests/00-bootstrap.sql.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aiproposal
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiproposal
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-proposal/package-lock.json
+
+      - run: npm ci
+
+      # Reconstruye desde cero: verifica también que las migraciones aplican
+      # limpiamente y en orden sobre una base vacía, igual que en producción.
+      - name: Tests de RLS
+        run: npm run test:db
+
+  security:
+    name: Dependencias y secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-proposal/package-lock.json
+
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+      - name: Ninguna clave service_role expuesta al cliente
+        run: |
+          # Un secreto con prefijo NEXT_PUBLIC_ se incrusta en el bundle del
+          # navegador. Basta una vez para comprometer toda la base de datos.
+          if grep -rn "NEXT_PUBLIC_.*SERVICE_ROLE" --include="*.ts" --include="*.tsx" src/; then
+            echo "::error::Se ha expuesto una clave service_role al cliente."
+            exit 1
+          fi

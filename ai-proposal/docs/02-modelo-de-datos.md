@@ -186,8 +186,8 @@ audit_log
   diff jsonb, ip_hash, created_at
 ```
 
-`ai_requests` con `cost_micros` es lo que permite responder a *"¿cuánto me cuesta atender a un cliente
-de plan Pro?"*. Sin esa tabla, el precio de la suscripción se fija a ojo.
+`ai_requests` con `cost_micros` es lo que permite responder a _"¿cuánto me cuesta atender a un cliente
+de plan Pro?"_. Sin esa tabla, el precio de la suscripción se fija a ojo.
 
 ---
 
@@ -199,21 +199,23 @@ Las líneas están normalizadas (D4); en `document` van las **secciones narrativ
 {
   "schema_version": 1,
   "summary": "Instalación de termo eléctrico de 100 L …",
-  "technical_description": "…",           // descripción técnica
-  "scope_included": ["…"],                 // qué incluye
-  "scope_excluded": ["…"],                 // qué NO incluye (evita discusiones)
+  "technical_description": "…", // descripción técnica
+  "scope_included": ["…"], // qué incluye
+  "scope_excluded": ["…"], // qué NO incluye (evita discusiones)
   "estimated_duration": { "value": 3, "unit": "hours" },
   "warranty": { "months": 24, "text": "…" },
-  "terms": ["…"],                          // condiciones
-  "assumptions": ["…"],                    // supuestos si el usuario forzó la generación
-  "notes_internal": "…",                   // no sale en el PDF
-  "ai": {                                  // trazabilidad
+  "terms": ["…"], // condiciones
+  "assumptions": ["…"], // supuestos si el usuario forzó la generación
+  "notes_internal": "…", // no sale en el PDF
+  "ai": {
+    // trazabilidad
     "trade": "fontaneria",
-    "provider": "…", "model": "…",
+    "provider": "…",
+    "model": "…",
     "session_id": "…",
     "generated_at": "…",
-    "slots": { "capacidad_litros": 100, "tipo_trabajo": "sustitucion" }
-  }
+    "slots": { "capacidad_litros": 100, "tipo_trabajo": "sustitucion" },
+  },
 }
 ```
 
@@ -221,7 +223,7 @@ Las líneas están normalizadas (D4); en `document` van las **secciones narrativ
 migra en memoria de v1 a v2 al abrir. Es el detalle que evita una migración masiva dentro de un año.
 
 `scope_excluded` merece mención: la mayoría de conflictos entre profesional y cliente vienen de lo que
-*no* estaba incluido. Que la IA lo haga explícito es una función de negocio, no un adorno.
+_no_ estaba incluido. Que la IA lo haga explícito es una función de negocio, no un adorno.
 
 ---
 
@@ -232,9 +234,9 @@ migra en memoria de v1 a v2 al abrir. Es el detalle que evita una migración mas
 ```ts
 type TaxProfile = {
   regime: 'peninsula' | 'canarias' | 'ceuta_melilla';
-  defaultVatRate: 0.21 | 0.10 | 0.04 | 0.07 | 0;
-  irpfRetention: 0 | 0.07 | 0.15;   // solo si el cliente es empresa/profesional
-  equivalenceSurcharge: boolean;    // cliente minorista en recargo de equivalencia
+  defaultVatRate: 0.21 | 0.1 | 0.04 | 0.07 | 0;
+  irpfRetention: 0 | 0.07 | 0.15; // solo si el cliente es empresa/profesional
+  equivalenceSurcharge: boolean; // cliente minorista en recargo de equivalencia
   pricesIncludeTax: boolean;
 };
 ```
@@ -260,12 +262,12 @@ Es exactamente el tipo de detalle que separa un producto profesional de una demo
 
 **Tipos de IVA relevantes en el ICP:**
 
-| Caso | Tipo |
-|---|---|
-| Servicio general | 21 % |
-| Renovación/reparación en vivienda particular, antigüedad > 2 años, material ≤ 40 % de la base | 10 % |
-| Canarias (IGIC general) | 7 % |
-| Ceuta y Melilla | IPSI (varía por municipio) |
+| Caso                                                                                          | Tipo                       |
+| --------------------------------------------------------------------------------------------- | -------------------------- |
+| Servicio general                                                                              | 21 %                       |
+| Renovación/reparación en vivienda particular, antigüedad > 2 años, material ≤ 40 % de la base | 10 %                       |
+| Canarias (IGIC general)                                                                       | 7 %                        |
+| Ceuta y Melilla                                                                               | IPSI (varía por municipio) |
 
 El sistema **sugiere** el tipo y muestra la condición legal aplicable, pero la responsabilidad fiscal es
 del usuario. Debe aparecer un aviso claro: la herramienta no sustituye a un asesor fiscal.
@@ -306,7 +308,7 @@ $$;
 
 `security definer` evita la recursión de RLS al consultar `memberships` desde la política de otra tabla.
 `(select auth.uid())` en lugar de `auth.uid()` fuerza a Postgres a evaluarlo **una vez por consulta**
-(*InitPlan*) en lugar de una vez por fila: en tablas grandes es la diferencia entre 8 ms y 800 ms.
+(_InitPlan_) en lugar de una vez por fila: en tablas grandes es la diferencia entre 8 ms y 800 ms.
 
 ### 6.2 Patrón por tabla
 
@@ -374,3 +376,59 @@ la aplicación siempre excluyen lo borrado.
 Búsqueda: `to_tsvector('spanish', unaccent(...))` en columna generada — así "reformas" encuentra
 "Reformás" y "fontaneria" encuentra "fontanería". Sin `unaccent`, el buscador falla justo con las
 palabras del mercado objetivo.
+
+---
+
+## 8. RLS y uso de índices — hallazgos medidos en F0
+
+Dos comportamientos de Postgres que no son evidentes y que condicionan cómo hay que escribir **toda**
+consulta del producto. Ambos se descubrieron midiendo sobre 40.000 filas, no razonando sobre el papel,
+y ambos están fijados como test de regresión en `supabase/tests/performance.test.ts`.
+
+### 8.1 RLS no sustituye al filtro por `org_id`
+
+La política es una llamada a función (`is_org_member(org_id)`). Postgres no puede indexar el resultado
+de una función: la evalúa fila a fila.
+
+| Consulta del listado (50.000 filas) | Plan       | Tiempo  |
+| ----------------------------------- | ---------- | ------- |
+| Sin `where org_id = $1`             | Seq Scan   | 251 ms  |
+| Con `where org_id = $1`             | Index Scan | 0,82 ms |
+
+**Invariante de la aplicación:** RLS es la frontera de **seguridad**; el `where org_id = ...` explícito
+es lo que da el **rendimiento**. Los dos, siempre, en toda consulta.
+
+Es un fallo silencioso: con datos de prueba va perfecto y se degrada cuando el producto tiene tracción,
+que es el peor momento posible. Por eso se verifica en CI y no se confía a la memoria de quien escriba
+la siguiente consulta.
+
+### 8.2 La búsqueda a texto completo no puede usar el índice GIN bajo RLS
+
+Con RLS, la tabla se comporta como una barrera de seguridad: las condiciones de la política se evalúan
+antes que las del usuario, salvo que el operador del usuario sea `LEAKPROOF` (podría revelar información
+de filas ajenas por el mensaje de error o por el tiempo de respuesta).
+
+| Operador             | `LEAKPROOF` | Índice utilizable bajo RLS |
+| -------------------- | ----------- | -------------------------- |
+| `uuid_eq` (`=`)      | sí          | sí — btree                 |
+| `ts_match_vq` (`@@`) | **no**      | **no** — el GIN se ignora  |
+
+Resultado: la búsqueda degradaba a recorrido secuencial (~120 ms y creciendo linealmente) mientras que
+el mismo plan sin RLS usa el GIN en ~4 ms. `ALTER FUNCTION ... LEAKPROOF` exige superusuario y no está
+disponible en Supabase.
+
+**Solución adoptada:** `search_proposals` (migración 0009), una función `security definer` que comprueba
+la pertenencia **una vez** al entrar y después ejecuta la consulta ya acotada a esa organización. Mismo
+patrón que `get_shared_proposal`. No debilita la seguridad —la autorización es explícita y el resultado
+queda acotado a `p_org_id`—; lo que elimina es la reevaluación por fila que impedía usar el índice.
+
+### 8.3 El cursor de paginación es texto opaco, no una fecha
+
+`timestamptz` almacena **microsegundos**; los clientes JavaScript lo reciben como `Date`, que solo tiene
+**milisegundos**. Al devolver ese valor como cursor, llega truncado hacia abajo y la comparación `<`
+descarta filas que sí correspondían: **la segunda página sale vacía**, y el usuario lo interpreta como
+"no hay más resultados" con miles de registros pendientes.
+
+Por eso `search_proposals` devuelve `next_cursor` como texto (`to_char(..., '…HH24:MI:SS.US')` + `id`)
+y lo acepta como texto. El cliente lo pasa tal cual, sin interpretarlo. Un cursor corrupto produce un
+error explícito (`invalid_cursor`), nunca una página vacía silenciosa.

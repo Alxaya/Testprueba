@@ -1,0 +1,57 @@
+{
+  "name": "ai-proposal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:db": "vitest run --project db",
+    "test:e2e": "playwright test",
+    "db:reset": "node scripts/db-reset.mjs",
+    "db:types": "supabase gen types typescript --local > src/lib/supabase/types.gen.ts",
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run test:db && npm run build"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
+    "next": "16.2.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.2.12",
+    "pg": "^8.13.1",
+    "prettier": "^3.4.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  },
+  "//eslint": "ESLint 9, no 10: eslint-plugin-react (dependencia de eslint-config-next) todavia usa context.getFilename(), eliminado en ESLint 10, y revienta al lintar cualquier fichero. Revisar al actualizar eslint-config-next.",
+  "//overrides": "Parches de seguridad en dependencias transitivas de tooling. `npm audit fix` propondria degradar Next y eslint-config-next a versiones de 2020, lo cual es peor que la vulnerabilidad. brace-expansion y minimatch van juntos: subir solo el primero rompe al segundo. Revisar en cada actualizacion de Next o de eslint-config-next y eliminar lo que ya no haga falta.",
+  "overrides": {
+    "brace-expansion": "^5.0.9",
+    "minimatch": "^10.2.6",
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3"
+  }
+}

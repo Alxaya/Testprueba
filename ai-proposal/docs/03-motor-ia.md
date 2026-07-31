@@ -12,7 +12,7 @@ cambia de proveedor sin tocar el resto del código.
 ```ts
 /** Contrato que cumple cualquier proveedor. Nada específico de vendor cruza esta línea. */
 export interface LlmProvider {
-  readonly id: ProviderId;                      // 'anthropic' | 'openai' | 'google' | …
+  readonly id: ProviderId; // 'anthropic' | 'openai' | 'google' | …
 
   readonly capabilities: {
     structuredOutput: boolean;
@@ -29,20 +29,20 @@ export interface LlmProvider {
 }
 
 export interface StructuredRequest<T> {
-  purpose: AiPurpose;                 // 'classify'|'extract'|'questions'|'generate'|'repair'
-  schema: z.ZodType<T>;               // fuente de verdad; se convierte a JSON Schema por proveedor
+  purpose: AiPurpose; // 'classify'|'extract'|'questions'|'generate'|'repair'
+  schema: z.ZodType<T>; // fuente de verdad; se convierte a JSON Schema por proveedor
   system: string;
-  input: UntrustedInput[];            // texto de usuario, marcado como no fiable
+  input: UntrustedInput[]; // texto de usuario, marcado como no fiable
   temperature?: number;
   maxOutputTokens?: number;
-  signal?: AbortSignal;               // timeout obligatorio
+  signal?: AbortSignal; // timeout obligatorio
   idempotencyKey?: string;
 }
 
 export interface StructuredResult<T> {
-  data: T;                            // ya validado por Zod
+  data: T; // ya validado por Zod
   usage: { inputTokens: number; outputTokens: number; cachedTokens: number };
-  cost: { micros: number };           // millonésimas de euro
+  cost: { micros: number }; // millonésimas de euro
   meta: { provider: ProviderId; model: string; latencyMs: number; attempts: number };
 }
 ```
@@ -51,25 +51,25 @@ export interface StructuredResult<T> {
 
 1. **Zod es la fuente de verdad.** El esquema TypeScript y el JSON Schema que se envía al proveedor
    salen del mismo objeto. No pueden divergir.
-2. **La validación ocurre siempre**, incluso con proveedores que prometen *structured output*. Prometer
+2. **La validación ocurre siempre**, incluso con proveedores que prometen _structured output_. Prometer
    no es garantizar.
 3. **`UntrustedInput`** es un tipo distinto de `string`. El compilador impide concatenar texto de
-   usuario dentro del *system prompt* — mitigación de *prompt injection* a nivel de tipos.
+   usuario dentro del _system prompt_ — mitigación de _prompt injection_ a nivel de tipos.
 4. **Coste calculado en el adaptador**, no en el llamante. Tarifas en una tabla de configuración.
 
 ### 1.2 Registro y política de enrutado
 
 ```ts
 const MODEL_POLICY: Record<AiPurpose, ModelRoute> = {
-  classify:  { tier: 'fast',    maxTokens: 200,   temperature: 0 },
-  extract:   { tier: 'fast',    maxTokens: 800,   temperature: 0 },
-  questions: { tier: 'balanced',maxTokens: 900,   temperature: 0.3 },
-  generate:  { tier: 'strong',  maxTokens: 4000,  temperature: 0.4 },
-  repair:    { tier: 'balanced',maxTokens: 4000,  temperature: 0 },
+  classify: { tier: 'fast', maxTokens: 200, temperature: 0 },
+  extract: { tier: 'fast', maxTokens: 800, temperature: 0 },
+  questions: { tier: 'balanced', maxTokens: 900, temperature: 0.3 },
+  generate: { tier: 'strong', maxTokens: 4000, temperature: 0.4 },
+  repair: { tier: 'balanced', maxTokens: 4000, temperature: 0 },
 };
 ```
 
-Los *tiers* (`fast` / `balanced` / `strong`) se mapean a modelos concretos por **configuración**
+Los _tiers_ (`fast` / `balanced` / `strong`) se mapean a modelos concretos por **configuración**
 (variables de entorno), no en el código. Cambiar de proveedor o de modelo = cambiar configuración y
 desplegar; cero refactor. Esto es literalmente lo que pide el brief.
 
@@ -79,16 +79,16 @@ un margen bruto del 60 % y uno del 92 %.
 
 ### 1.3 Fiabilidad
 
-| Mecanismo | Detalle |
-|---|---|
-| Timeout | 25 s (`generate`), 8 s (resto). Vía `AbortSignal`, siempre |
-| Reintentos | 2, con retroceso exponencial + *jitter*, solo en 429/5xx/timeout |
-| Failover | Ante fallo persistente del proveedor primario, cae al secundario automáticamente |
-| Reparación | Si Zod falla: se reenvía con los errores de validación como instrucción (máx. 2 intentos) |
-| Último recurso | Plantilla determinista del oficio + aviso al usuario. **Nunca** una pantalla en blanco |
-| Caché | `classify` y `extract` cacheados por hash(texto + versión de esquema) |
-| Idempotencia | `idempotencyKey` evita cobrar dos veces la misma generación si el usuario recarga |
-| Contabilidad | Cada llamada, exitosa o no, escribe una fila en `ai_requests` |
+| Mecanismo      | Detalle                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| Timeout        | 25 s (`generate`), 8 s (resto). Vía `AbortSignal`, siempre                                |
+| Reintentos     | 2, con retroceso exponencial + _jitter_, solo en 429/5xx/timeout                          |
+| Failover       | Ante fallo persistente del proveedor primario, cae al secundario automáticamente          |
+| Reparación     | Si Zod falla: se reenvía con los errores de validación como instrucción (máx. 2 intentos) |
+| Último recurso | Plantilla determinista del oficio + aviso al usuario. **Nunca** una pantalla en blanco    |
+| Caché          | `classify` y `extract` cacheados por hash(texto + versión de esquema)                     |
+| Idempotencia   | `idempotencyKey` evita cobrar dos veces la misma generación si el usuario recarga         |
+| Contabilidad   | Cada llamada, exitosa o no, escribe una fila en `ai_requests`                             |
 
 ---
 
@@ -109,8 +109,8 @@ export const fontaneria: TradeDefinition = {
       type: 'enum',
       options: [
         { value: 'instalacion_nueva', label: 'Instalación nueva' },
-        { value: 'sustitucion',       label: 'Sustitución' },
-        { value: 'reparacion',        label: 'Reparación' },
+        { value: 'sustitucion', label: 'Sustitución' },
+        { value: 'reparacion', label: 'Reparación' },
       ],
       required: true,
     },
@@ -118,15 +118,19 @@ export const fontaneria: TradeDefinition = {
       id: 'retirada_antiguo',
       question: '¿Hay que retirar y gestionar el aparato antiguo?',
       type: 'boolean',
-      required: (ctx) => ctx.tipo_trabajo === 'sustitucion',   // condicional
+      required: (ctx) => ctx.tipo_trabajo === 'sustitucion', // condicional
     },
-    { id: 'provincia',   question: '¿En qué provincia?', type: 'location', required: true },
-    { id: 'accesos',     question: '¿Acceso complicado (altura, hueco estrecho)?',
-      type: 'boolean', required: false },
+    { id: 'provincia', question: '¿En qué provincia?', type: 'location', required: true },
+    {
+      id: 'accesos',
+      question: '¿Acceso complicado (altura, hueco estrecho)?',
+      type: 'boolean',
+      required: false,
+    },
   ],
 
   defaultWarrantyMonths: 24,
-  baseCatalog: [ /* materiales y mano de obra típicos, con precios de referencia */ ],
+  baseCatalog: [/* materiales y mano de obra típicos, con precios de referencia */],
 };
 ```
 
@@ -135,9 +139,9 @@ export const fontaneria: TradeDefinition = {
 - La regla "no generar sin información suficiente" pasa a ser
   `slots.filter(s => isRequired(s, ctx) && !filled(s)).length === 0` — una condición booleana testeable
   en CI, no una esperanza depositada en un prompt.
-- Las preguntas tienen **opciones predefinidas** → *chips* pulsables → 10 s en lugar de 3 min (§1.3 del doc 00).
+- Las preguntas tienen **opciones predefinidas** → _chips_ pulsables → 10 s en lugar de 3 min (§1.3 del doc 00).
 - `required` puede ser función: se pregunta por la retirada del aparato antiguo **solo** si es una
-  sustitución. La entrevista se siente inteligente porque *es* inteligente, no porque el modelo tenga suerte.
+  sustitución. La entrevista se siente inteligente porque _es_ inteligente, no porque el modelo tenga suerte.
 - Añadir un oficio nuevo = añadir un fichero. Sin tocar el motor.
 
 **Oficios de la primera versión** (los del brief): fontanería, electricidad, pintura, reformas
@@ -169,7 +173,7 @@ POST /api/ai/interview   { text, sessionId? }
 La respuesta incluye siempre `completeness` (0-1) para pintar una barra de progreso — comunica al
 usuario que el sistema está avanzando, no interrogándole sin fin.
 
-**Escape hatch obligatorio:** el usuario siempre puede pulsar *"Generar con lo que hay"*. En ese caso la
+**Escape hatch obligatorio:** el usuario siempre puede pulsar _"Generar con lo que hay"_. En ese caso la
 IA genera **y lista los supuestos aplicados** en `document.assumptions`, que salen impresos en el PDF
 bajo el epígrafe "Supuestos". Esto convierte una limitación en una función de confianza: el cliente
 final ve exactamente sobre qué base se ha presupuestado.
@@ -195,7 +199,7 @@ entrada del usuario: <untrusted>…</untrusted>
 ```
 
 El orden importa: **los precios propios del usuario pesan más que el conocimiento general del modelo**.
-La instrucción es explícita: *si existe un precio propio para un concepto, úsalo; no lo inventes.*
+La instrucción es explícita: _si existe un precio propio para un concepto, úsalo; no lo inventes._
 
 ### 4.2 Esquema de salida
 
@@ -204,17 +208,25 @@ const GeneratedProposal = z.object({
   title: z.string().min(5).max(120),
   summary: z.string().min(20).max(400),
   technicalDescription: z.string().min(50),
-  lines: z.array(z.object({
-    kind: z.enum(['material','labor','service','equipment','other']),
-    description: z.string().min(3).max(200),
-    quantity: z.number().positive().max(10_000),
-    unit: z.enum(['unit','hour','m','m2','m3','kg','day','service']),
-    unitPriceCents: z.number().int().nonnegative().max(100_000_00),
-    taxRate: z.enum(['0.21','0.10','0.04','0.07','0']).transform(Number),
-  })).min(2).max(40),
+  lines: z
+    .array(
+      z.object({
+        kind: z.enum(['material', 'labor', 'service', 'equipment', 'other']),
+        description: z.string().min(3).max(200),
+        quantity: z.number().positive().max(10_000),
+        unit: z.enum(['unit', 'hour', 'm', 'm2', 'm3', 'kg', 'day', 'service']),
+        unitPriceCents: z.number().int().nonnegative().max(100_000_00),
+        taxRate: z.enum(['0.21', '0.10', '0.04', '0.07', '0']).transform(Number),
+      }),
+    )
+    .min(2)
+    .max(40),
   scopeIncluded: z.array(z.string()).min(1).max(12),
   scopeExcluded: z.array(z.string()).max(10),
-  estimatedDuration: z.object({ value: z.number().positive(), unit: z.enum(['hours','days','weeks']) }),
+  estimatedDuration: z.object({
+    value: z.number().positive(),
+    unit: z.enum(['hours', 'days', 'weeks']),
+  }),
   warranty: z.object({ months: z.number().int().min(0).max(120), text: z.string() }),
   terms: z.array(z.string()).min(2).max(10),
   assumptions: z.array(z.string()).max(8),
@@ -241,19 +253,19 @@ El punto 4 es lo que hace que el producto **mejore solo con el uso**.
 
 ---
 
-## 5. Seguridad frente a *prompt injection*
+## 5. Seguridad frente a _prompt injection_
 
 Vectores reales: el texto que escribe el usuario, el nombre de un cliente guardado, las notas de un
 presupuesto anterior inyectado como contexto.
 
-| Medida | Implementación |
-|---|---|
-| Separación de canales | `system` es una constante del código; el texto de usuario entra como `UntrustedInput`, tipo distinto que no se puede concatenar al system |
-| Delimitación | Contenido no fiable envuelto en etiquetas + instrucción explícita de tratarlo como datos |
-| Sin herramientas peligrosas | El modelo no dispone de ninguna función con efectos secundarios. No puede leer BD ni enviar emails |
-| Salida acotada | Solo se acepta JSON validado por Zod. Un intento de inyección produce un fallo de validación, no una acción |
-| Renderizado seguro | La salida se pinta como texto. Nunca `dangerouslySetInnerHTML` |
-| Límites | Longitud máxima de entrada, tokens máximos de salida, límite de peticiones por organización |
+| Medida                      | Implementación                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Separación de canales       | `system` es una constante del código; el texto de usuario entra como `UntrustedInput`, tipo distinto que no se puede concatenar al system |
+| Delimitación                | Contenido no fiable envuelto en etiquetas + instrucción explícita de tratarlo como datos                                                  |
+| Sin herramientas peligrosas | El modelo no dispone de ninguna función con efectos secundarios. No puede leer BD ni enviar emails                                        |
+| Salida acotada              | Solo se acepta JSON validado por Zod. Un intento de inyección produce un fallo de validación, no una acción                               |
+| Renderizado seguro          | La salida se pinta como texto. Nunca `dangerouslySetInnerHTML`                                                                            |
+| Límites                     | Longitud máxima de entrada, tokens máximos de salida, límite de peticiones por organización                                               |
 
 **Principio:** aunque una inyección tuviera éxito, el daño máximo posible es un presupuesto con texto
 raro. No hay camino desde el prompt hasta los datos de otro cliente ni hasta una acción externa.
@@ -269,14 +281,14 @@ precio aceptables, construidos a partir de presupuestos reales del sector.
 
 **Se ejecuta en CI en cada cambio de prompt, esquema o modelo:**
 
-| Métrica | Umbral mínimo |
-|---|---|
-| Precisión de clasificación de oficio | ≥ 95 % |
-| Recall de extracción de slots | ≥ 90 % |
-| Validación de esquema a la primera | ≥ 98 % |
-| Precios dentro del rango esperado | ≥ 85 % |
-| Coste medio por generación | < 0,04 € |
-| Latencia p95 | < 25 s |
+| Métrica                              | Umbral mínimo |
+| ------------------------------------ | ------------- |
+| Precisión de clasificación de oficio | ≥ 95 %        |
+| Recall de extracción de slots        | ≥ 90 %        |
+| Validación de esquema a la primera   | ≥ 98 %        |
+| Precios dentro del rango esperado    | ≥ 85 %        |
+| Coste medio por generación           | < 0,04 €      |
+| Latencia p95                         | < 25 s        |
 
 Los evals corren contra los modelos configurados. Cuando salga un modelo nuevo, se ejecuta el eval, se
 compara coste/calidad/latencia, y **se cambia la configuración si gana**. Cero cambios de código —

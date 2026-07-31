@@ -1,0 +1,133 @@
+/**
+ * Tokens de diseño (docs/01, §8).
+ *
+ * Única fuente de verdad de la identidad visual. Ningún componente debe llevar
+ * un color, un radio o una duración escritos a mano: si hay que rediseñar la
+ * marca entera, se edita este fichero y nada más.
+ *
+ * El tema oscuro es el predeterminado y el que se diseña primero; el claro
+ * existe para no cerrar la puerta y se afina en F8.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ── Superficies ────────────────────────────────────────────────────────
+     Nunca negro puro: #000 sobre OLED produce halos y sensación de "agujero".
+     La elevación se comunica con luminosidad + un borde de 1px, no con sombras
+     pesadas (referencia: Linear, Raycast).                                   */
+  --color-bg: oklch(0.145 0.006 285);
+  --color-surface: oklch(0.178 0.007 285);
+  --color-surface-raised: oklch(0.212 0.008 285);
+  --color-surface-overlay: oklch(0.238 0.009 285);
+  --color-border: oklch(0.278 0.009 285);
+  --color-border-strong: oklch(0.352 0.011 285);
+
+  /* ── Texto ─────────────────────────────────────────────────────────────
+     Contraste verificado ≥ 4.5:1 sobre --color-bg (WCAG 2.2 AA).            */
+  --color-text: oklch(0.967 0.003 285);
+  --color-text-muted: oklch(0.735 0.011 285);
+  --color-text-subtle: oklch(0.586 0.013 285);
+
+  /* ── Acento ────────────────────────────────────────────────────────────
+     Un solo acento, usado con moderación. Personalizable por organización
+     sobrescribiendo estas variables en el ámbito del layout.                 */
+  --color-accent: oklch(0.646 0.182 268);
+  --color-accent-hover: oklch(0.696 0.182 268);
+  --color-accent-fg: oklch(0.985 0.002 285);
+  --color-accent-subtle: oklch(0.646 0.182 268 / 0.12);
+  --color-ring: oklch(0.686 0.16 268);
+
+  /* ── Semánticos ────────────────────────────────────────────────────────*/
+  --color-success: oklch(0.702 0.152 155);
+  --color-warning: oklch(0.783 0.153 82);
+  --color-danger: oklch(0.637 0.208 25);
+  --color-info: oklch(0.702 0.128 233);
+
+  /* ── Estados de un presupuesto ─────────────────────────────────────────
+     Definidos como tokens para que la insignia de estado, el gráfico del
+     dashboard y el filtro del listado no puedan desincronizarse.             */
+  --color-status-draft: var(--color-text-subtle);
+  --color-status-sent: var(--color-info);
+  --color-status-viewed: oklch(0.75 0.14 305);
+  --color-status-accepted: var(--color-success);
+  --color-status-rejected: var(--color-danger);
+  --color-status-expired: var(--color-warning);
+
+  /* ── Radios ────────────────────────────────────────────────────────────*/
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* ── Sombras ───────────────────────────────────────────────────────────
+     Discretas: en tema oscuro la profundidad la da la luminosidad.           */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.35);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.45);
+
+  /* ── Movimiento ────────────────────────────────────────────────────────
+     Una sola curva para todo el producto: el movimiento coherente es lo que
+     hace que una interfaz se perciba "cara". Rangos cortos: la animación
+     comunica causa-efecto, no entretiene.                                    */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 320ms;
+
+  /* ── Tipografía ────────────────────────────────────────────────────────*/
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Layout ────────────────────────────────────────────────────────────*/
+  --sidebar-width: 15rem;
+  --topbar-height: 3.5rem;
+  --content-max: 80rem;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-bg: oklch(0.995 0.001 285);
+  --color-surface: oklch(1 0 0);
+  --color-surface-raised: oklch(0.978 0.002 285);
+  --color-surface-overlay: oklch(1 0 0);
+  --color-border: oklch(0.912 0.004 285);
+  --color-border-strong: oklch(0.845 0.006 285);
+
+  --color-text: oklch(0.212 0.008 285);
+  --color-text-muted: oklch(0.448 0.011 285);
+  --color-text-subtle: oklch(0.578 0.012 285);
+
+  --color-accent-fg: oklch(0.995 0.001 285);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.08);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.12);
+}
+
+/**
+ * Accesibilidad, no opcional: hay usuarios para los que el movimiento provoca
+ * mareo o migraña. Se anula globalmente aquí para que ningún componente
+ * futuro pueda olvidarlo.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
