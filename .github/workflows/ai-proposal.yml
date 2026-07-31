@@ -78,6 +78,42 @@ jobs:
       - name: Tests de RLS
         run: npm run test:db
 
+  e2e:
+    name: Recorridos de extremo a extremo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-proposal/package-lock.json
+
+      - run: npm ci
+      # Solo Chromium: los dos proyectos (escritorio y móvil 375×667) lo usan,
+      # y descargar Firefox y WebKit triplicaría el tiempo de instalación sin
+      # aportar cobertura adicional. Safari real se verifica en F8.
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+
+      - run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: ai-proposal/playwright-report/
+          retention-days: 7
+
   security:
     name: Dependencias y secretos
     runs-on: ubuntu-latest

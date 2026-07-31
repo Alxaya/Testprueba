@@ -26,5 +26,6 @@ declare namespace NodeJS {
 
     readonly CI?: string;
     readonly PLAYWRIGHT_BASE_URL?: string;
+    readonly PLAYWRIGHT_CHROMIUM_PATH?: string;
   }
 }
