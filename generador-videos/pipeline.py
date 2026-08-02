@@ -32,7 +32,14 @@ from pathlib import Path
 SALIDA = Path(__file__).parent / "salida"
 CLIPS = SALIDA / "clips"
 VOZ_DEFECTO = "es-MX-JorgeNeural"  # otras: es-ES-AlvaroNeural, es-MX-DaliaNeural
-ANCHO, ALTO = 1080, 1920
+ANCHO, ALTO = 1080, 1920          # vertical (Shorts/TikTok), por defecto
+HORIZONTAL = (1920, 1080)         # 16:9 para vídeos largos de YouTube
+
+
+def usar_formato(horizontal: bool):
+    """Cambia las dimensiones de salida: 16:9 para largos, 9:16 para cortos."""
+    global ANCHO, ALTO
+    ANCHO, ALTO = HORIZONTAL if horizontal else (1080, 1920)
 
 
 def ffmpeg_exe() -> str:
@@ -146,8 +153,8 @@ PlayResY: {ALTO}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Outline, Shadow, Alignment, MarginL, MarginR, MarginV
-Style: TikTok,DejaVu Sans,110,&H00FFFFFF,&H00000000,&H80000000,-1,8,2,5,60,60,0
-Style: Portada,DejaVu Sans,95,&H0000E7FF,&H00000000,&H90000000,-1,9,3,8,50,50,320
+Style: TikTok,DejaVu Sans,{72 if ANCHO > ALTO else 110},&H00FFFFFF,&H00000000,&H80000000,-1,8,2,{2 if ANCHO > ALTO else 5},60,60,{90 if ANCHO > ALTO else 0}
+Style: Portada,DejaVu Sans,{64 if ANCHO > ALTO else 95},&H0000E7FF,&H00000000,&H90000000,-1,9,3,8,50,50,{60 if ANCHO > ALTO else 320}
 
 [Events]
 Format: Layer, Start, End, Style, Text
@@ -193,6 +200,7 @@ def _voz_completa(bruto: Path, fin_habla: float) -> bool:
 
 
 def cmd_voz(args):
+    usar_formato(getattr(args, 'horizontal', False))
     guion = SALIDA / "guion.txt"
     if not guion.exists():
         sys.exit("Escribe tu guion nuevo en salida/guion.txt (ver: python pipeline.py prompt)")
@@ -242,7 +250,8 @@ def _buscar_pexels(consulta: str, clave: str, cantidad: int):
 
     r = httpx.get(
         "https://api.pexels.com/videos/search",
-        params={"query": consulta, "orientation": "portrait", "per_page": max(cantidad, 8), "size": "medium"},
+        params={"query": consulta, "orientation": "landscape" if ANCHO > ALTO else "portrait",
+                "per_page": max(cantidad, 8), "size": "medium"},
         headers={"Authorization": clave},
         timeout=30,
     )
@@ -251,6 +260,7 @@ def _buscar_pexels(consulta: str, clave: str, cantidad: int):
 
 
 def cmd_visuales(args):
+    usar_formato(getattr(args, 'horizontal', False))
     clave = os.environ.get("PEXELS_API_KEY")
     if not clave:
         sys.exit("Define tu clave: export PEXELS_API_KEY='tu_clave'  (gratis en pexels.com/api)")
@@ -279,7 +289,9 @@ def cmd_visuales(args):
             if video["id"] in vistos:  # ya usado en otra búsqueda, sáltalo
                 continue
             # elige el archivo vertical de mayor calidad razonable (~1080 de ancho máx.)
-            archivos = [f for f in video["video_files"] if f["width"] <= 1200 and f["height"] > f["width"]]
+            archivos = ([f for f in video["video_files"] if f["width"] <= 2000 and f["width"] > f["height"]]
+                        if ANCHO > ALTO else
+                        [f for f in video["video_files"] if f["width"] <= 1200 and f["height"] > f["width"]])
             if not archivos:
                 continue
             mejor = max(archivos, key=lambda f: f["width"])
@@ -328,6 +340,7 @@ def cmd_musica(args):
 # ── 6. Montar el video final ─────────────────────────────────────────────────
 
 def cmd_montar(args):
+    usar_formato(getattr(args, 'horizontal', False))
     voz = SALIDA / "voz.wav"
     subs = SALIDA / "subtitulos.ass"
     if not voz.exists() or not subs.exists():
@@ -427,6 +440,8 @@ def main():
 
     v = sub.add_parser("voz", help="Generar voz en off y subtítulos desde salida/guion.txt")
     v.add_argument("--voz", default=VOZ_DEFECTO)
+    v.add_argument("--horizontal", action="store_true",
+                   help="Formato 16:9 para vídeos largos (por defecto 9:16)")
     v.add_argument("--hitos", default=None,
                    help="Textos de impacto intermedios: '18:FRASE|40:OTRA FRASE'")
     v.add_argument("--titulo", default=None,
@@ -439,11 +454,15 @@ def main():
     mu.set_defaults(fn=cmd_musica)
 
     vi = sub.add_parser("visuales", help="Descargar clips de stock desde Pexels")
+    vi.add_argument("--horizontal", action="store_true",
+                   help="Formato 16:9 para vídeos largos (por defecto 9:16)")
     vi.add_argument("temas", help='Temas separados por coma, ej: "city night, typing on laptop"')
     vi.add_argument("--por-tema", type=int, default=2, help="Clips por tema (defecto: 2)")
     vi.set_defaults(fn=cmd_visuales)
 
     m = sub.add_parser("montar", help="Montar el video final 9:16")
+    m.add_argument("--horizontal", action="store_true",
+                   help="Formato 16:9 para vídeos largos (por defecto 9:16)")
     m.add_argument("--musica", action="store_true",
                    help="Mezclar salida/musica.wav de fondo (por defecto: solo voz)")
     m.set_defaults(fn=cmd_montar)
