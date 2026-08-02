@@ -133,7 +133,7 @@ async def _generar_voz(texto: str, voz: str, mp3: Path, ritmo: str, tono: str):
     return palabras
 
 
-def _ass_desde_palabras(palabras, destino: Path, por_grupo=3, titulo=None):
+def _ass_desde_palabras(palabras, destino: Path, por_grupo=3, titulo=None, hitos=None):
     """Subtítulos ASS grandes y centrados, en grupos de pocas palabras (estilo TikTok).
 
     Si se pasa `titulo`, se muestra como portada gigante en la parte alta
@@ -160,6 +160,9 @@ Format: Layer, Start, End, Style, Text
     lineas = []
     if titulo:
         lineas.append(f"Dialogue: 1,0:00:00.00,0:00:02.80,Portada,{titulo.upper()}")
+    # textos de impacto intermedios: anclan la atención en los momentos clave
+    for ini, dur, txt in (hitos or []):
+        lineas.append(f"Dialogue: 1,{t(ini)},{t(ini + dur)},Portada,{txt.upper()}")
     for i in range(0, len(palabras), por_grupo):
         grupo = palabras[i : i + por_grupo]
         ini, fin = grupo[0][0], grupo[-1][1]
@@ -205,7 +208,12 @@ def cmd_voz(args):
         sys.exit("edge-tts devolvió audio roto en 3 intentos; prueba de nuevo en unos minutos")
     if not palabras:
         sys.exit("edge-tts no devolvió tiempos de palabras; no puedo generar subtítulos")
-    _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass", titulo=args.titulo)
+    hitos = []
+    for h in (args.hitos or "").split("|"):
+        if ":" in h:
+            seg, txt = h.split(":", 1)
+            hitos.append((float(seg), 2.5, txt.strip()))
+    _ass_desde_palabras(palabras, SALIDA / "subtitulos.ass", titulo=args.titulo, hitos=hitos)
     # guarda los tiempos de cada palabra para poder alinear clips a segmentos
     (SALIDA / "palabras.json").write_text(
         json.dumps([[round(i, 3), round(f, 3), w] for i, f, w in palabras], ensure_ascii=False),
@@ -419,6 +427,8 @@ def main():
 
     v = sub.add_parser("voz", help="Generar voz en off y subtítulos desde salida/guion.txt")
     v.add_argument("--voz", default=VOZ_DEFECTO)
+    v.add_argument("--hitos", default=None,
+                   help="Textos de impacto intermedios: '18:FRASE|40:OTRA FRASE'")
     v.add_argument("--titulo", default=None,
                    help="Portada de texto gigante en los primeros 2.8s (el gancho escrito)")
     v.add_argument("--ritmo", default="-8%", help="Velocidad, ej: -10%% (lento) o +15%% (rápido)")
